@@ -26,6 +26,7 @@ import pandas as pd
 import scipy, cesium, gatspy
         
 
+## ############################################################################ ##
 class LightCurve():
     
     def __init__(self, times, measurements, errors, 
@@ -51,8 +52,8 @@ class LightCurve():
         self.label           = label
         self.survey          = survey
         
-        self.p_signif        = p_signif   # opt, catg ASAS, LINEAR
-        self.p_class         = p_class    # opt, catg ASAS, LINEAR
+        self.p_signif        = p_signif   # deprecated
+        self.p_class         = p_class    # deprecated
         
         ## Epoch, phase-folding
         self.epoch_t0        = {self.name:epoch_t0}
@@ -60,12 +61,12 @@ class LightCurve():
         ## Residuals from supersmoother fit
         self.ss_resid        = ss_resid
         
-        ## Lomb-Scargle model [GATSPY py library] fit
+        ## Lomb-Scargle model [GATSPY py library]
         self.model_gatspy    = model_gatspy
         self.period_gatspy   = period_gatspy    
         self.score_gatspy    = score_gatspy    
         
-        ## Lomb-Scargle model [CESIUM py library] fit
+        ## Lomb-Scargle model [CESIUM py library]
         self.model_cesium    = None
         self.period_cesium   = None
         self.trend_cesium    = None
@@ -87,7 +88,7 @@ class LightCurve():
         return len(self.times)
 
 
-    ## ######################################################################## ## 
+   ## ############################################################################ ## 
     def fit_supersmoother(self, m_period = None, periodic=True, scale=True):
         ''' Residuals from SuperSmoother (Friedman 1984). [SOURCE: py supersmoother library]
         @param m_period: float, period.
@@ -107,7 +108,7 @@ class LightCurve():
         except ValueError:
             self.ss_resid = np.inf
 
-
+    ## ############################################################################ ##
     def fit_lomb_scargle_gatspy(self, pix_order=True, passbands=None):
         ''' Fit a Lomb-Scargle model. [SOURCE: py GATSPY library]
         @param pix_order: boolean, order pixels in time.
@@ -131,7 +132,7 @@ class LightCurve():
         self.period_gatspy = self.model_gatspy.best_period
         self.score_gatspy   = self.model_gatspy.score(self.period_gatspy).item()
 
-
+    ## ############################################################################ ##
     def fit_lomb_scargle_cesium(self, pix_order=True, sys_err=0.00, nharm=15, nfreq=1,tone_control=5.0):
         ''' Fit a Lomb-Scargle model. [SOURCE: py CESIUM library]
         @param pix_order: boolean, order pixels in time.
@@ -154,7 +155,7 @@ class LightCurve():
         self.period_cesium    = 1/self.model_cesium['freq_fits'][0]['freq']
         
         
-    ## ######################################################################## ## 
+    ## ############################################################################ ## 
     def evaluate_trend_linear(self, do_weighted=False):
         ''' Trend estimation from linear fit
         @param do_weighted: boolean, if weights are used.
@@ -169,7 +170,7 @@ class LightCurve():
                                p0=(0., self.mean))
         self.trend_line= func(self.times, *popt)
         
-
+    ## ############################################################################ ##
     def evaluate_trend_spline(self, w0=None, pix_order=True):
         ''' Trend estimation from spline fit
         @param w: float[], weights.
@@ -189,7 +190,7 @@ class LightCurve():
         self.trend_spline = m_spl(t)
         
         
-    ## ######################################################################## ## 
+    ## ############################################################################ ## 
     def period_fold(self, period=None, pix_rejection = True, 
                               epoch_select = 'max_brightness', epoch_t0=None, extend_2cycles = True):
         ''' Phase folding for light-curves.
@@ -224,14 +225,12 @@ class LightCurve():
         phase[(phase<0)] += 1    ##(np.modf(phase)[0]+1) eq. to (np.modf(phase - np.floor(phase))[0])
         self.times = phase
         
-        if extend_2cycles:
-            # mirror
+        if extend_2cycles: ## = mirror
             phase_ext  = np.concatenate((phase-1, phase)) 
             meas_ext   = np.concatenate((self.measurements, self.measurements))
             errors_ext = np.concatenate((self.errors, self.errors))
             if self.passbands is not None :
                 pb_ext = np.concatenate((self.passbands, self.passbands))
-                
                 
             # remove duplicates
             phase_ext, inds_  = np.unique(phase_ext, return_index=True) #return_inverse=True)

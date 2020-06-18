@@ -28,27 +28,19 @@ from statsmodels.stats.weightstats import DescrStatsW
 from keras.preprocessing.sequence import pad_sequences
 import light_curve
 
+ 
 
-def print_versions():
-    """ ---------------------------------------------------------
-        @summary: List of current Py packages.
-    ---------------------------------------------------------- """
-    lib_py = ['argparse','astropy', 'cesium','collections','copy','h5py','joblib','json','keras','keras_preprocessing', 'keras_applications', 'matplotlib','natsort',
-                  'numpy', 'os', 'pandas', 'pickle','random','schwimmbad','scipy','seaborn', 'simplejson','sklearn', 'statsmodels','sys','tensorflow','time','tqdm']
-    for name, module in sorted(sys.modules.items()):
-        if (name in lib_py) & (hasattr(module, '__version__')):
-                print ('\t *', name, module.__version__)
-    
-    
-
-def normalize_lc(vect_mags, vect_errs, norm_method = "standardization", do_reject = True, alpha = 0.05):
+## ############################################################################ ##
+def normalize_lc(vect_mags, vect_errs, 
+                 norm_method = "standardization", 
+                 rej_pix = True, alpha = 0.05):
     """ ---------------------------------------------------------
         @summary: Normalize data
     ---------------------------------------------------------- """
     mags = copy.deepcopy(vect_mags)
     errs = copy.deepcopy(vect_errs)
 
-    if do_reject:
+    if rej_pix:
         keep = np.nanpercentile(mags,(alpha*100,(1-alpha)*100))
         selidx = ((mags<keep[1])&(mags>keep[0]))
     else:
@@ -79,8 +71,8 @@ def normalize_lc(vect_mags, vect_errs, norm_method = "standardization", do_rejec
      
                                     
                                  
-def preprocess_matrix(X_raw, m_max = np.inf, m_stats = None, do_diffT = False,
-                norm_method = "standardization", do_reject = True, alpha = 0.05): #alpha = 0.001)
+def preprocess_matrix(X_raw, m_max = np.inf, m_stats = None, diff_timeas = False,
+                norm_method = "standardization", rej_pix = True, alpha = 0.05): #alpha = 0.001)
     """ ---------------------------------------------------------
         @summary: Normalize mag measurements, pix rejection
     ---------------------------------------------------------- """
@@ -88,13 +80,13 @@ def preprocess_matrix(X_raw, m_max = np.inf, m_stats = None, do_diffT = False,
     wrong_units =  np.all(np.isnan(X[:, :, 1])) | (np.nanmax(X[:, :, 1], axis = 1) > m_max)
     X = X[~wrong_units, :, :]
     
-    if do_diffT: # times into dt
+    if diff_timeas: # times into dt
         X[:, :, 0] = times_to_lags(X[:, :, 0])
     
     nobjects = X.shape[0]
     m_stats = np.ndarray((nobjects,3), dtype = np.float64)
     for j in range(nobjects):
-        X[j,:,1], X[j,:,2], m_stats[j,:] = normalize_lc(X[j,:,1], X[j,:,2], norm_method, do_reject, alpha)
+        X[j,:,1], X[j,:,2], m_stats[j,:] = normalize_lc(X[j,:,1], X[j,:,2], norm_method, rej_pix, alpha)
     
     ## Statistics
     # means  = np.atleast_2d(np.nanmean(X[:, :, 1], axis = 1)).T
@@ -108,6 +100,7 @@ def preprocess_matrix(X_raw, m_max = np.inf, m_stats = None, do_diffT = False,
     return X, m_stats, wrong_units
 
 
+## ############################################################################ ##
 def times_to_lags(T):
     """ ---------------------------------------------------------
         (N x n_step) matrix of times -> (N x n_step) matrix of lags.
@@ -135,7 +128,7 @@ def lags_to_times(dT,t_0 = None):
     
 
 
-## ######################################################################## ## 
+## ############################################################################ ##
 def period_fold(lc, period, pix_rejection = True,
                 epoch_select = 'max_brightness', epoch_t0 = None,
                 extend_2cycles = True, rm_dupli = True):
@@ -219,11 +212,11 @@ def period_fold(lc, period, pix_rejection = True,
 
 
 
-## ######################################################################## ##
+## ############################################################################ ##
 def pred_GP_lc (xtimes, ymags, yerrs, mperiod, 
                 x_up, pix_rejection=True, alpha=None,
                 m_variation=1e-20, kernel_type="mix_SHOs",
-                do_phased=False, do_normalized=True,
+                lc_phased=False, lc_normalized=True,
                 verbose=True):
     """ ---------------------------------------------------------
         @summary: GP model computed on (x,y,yerr) measurements
@@ -269,7 +262,7 @@ def pred_GP_lc (xtimes, ymags, yerrs, mperiod,
 
     with pm.Model() as model:
 
-        mean = pm.Normal("mean", mu=0 if do_normalized else np.mean(y), sd=10.0)
+        mean = pm.Normal("mean", mu=0 if lc_normalized else np.mean(y), sd=10.0)
 
         if kernel_type=='matern': # Matérn kernel
             logs2   = pm.Normal("logs2", mu=2*np.log(np.min(yerr)), sd=5.0)
@@ -292,7 +285,7 @@ def pred_GP_lc (xtimes, ymags, yerrs, mperiod,
             
             logamp = np.log(np.var(y))
 
-            varp = (.1 if mperiod>1 else 10.) if do_phased==False else .1
+            varp = (.1 if mperiod>1 else 10.) if lc_phased==False else .1
             #estimated_period = np.log(1/mperiod) if (mperiod<1) else np.log(mperiod)
             estimated_period = np.log(mperiod)
             logperiod = pm.Normal("logperiod", mu=estimated_period, sd=varp)
@@ -319,7 +312,7 @@ def pred_GP_lc (xtimes, ymags, yerrs, mperiod,
 
             estimated_period = np.log(1/mperiod) if (mperiod<1) else np.log(mperiod)
             #estimated_period = np.log(mperiod)
-            #varp = .1 if do_phased else (.1 if mperiod>1 else 10.)
+            #varp = .1 if lc_phased else (.1 if mperiod>1 else 10.)
             varp = 10 #.1 #10
             logperiod = pm.Normal("logperiod", mu=estimated_period, sd=varp)
             period = pm.Deterministic("period", tt.exp(-logperiod) if (mperiod<1) else tt.exp(logperiod))
@@ -434,7 +427,7 @@ def pred_GP_lc (xtimes, ymags, yerrs, mperiod,
     return dict_gpm, dict_map_gp, dict_pred_gp
 
 
-## ######################################################################## ##
+## ############################################################################ ##
 def get_FRandom_vector(xmin, xmax, nbsample):
     randomF_vect=[]
     for i in range(nbsample):
@@ -445,7 +438,7 @@ def get_FRandom_vector(xmin, xmax, nbsample):
     return randomF_vect
 
 
-## ######################################################################## ##
+## ############################################################################ ##
 def get_random_timerange(x,dx, nbpoints_up=200, period_crit=None, factor=10, fixed_shift=True) :
     
     ## ------------------------- DETECTABLE GAPS ------------------------- ##

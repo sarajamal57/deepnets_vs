@@ -1,8 +1,12 @@
-# Ignore files
+# Ignore
 *.DS_Store
 *.zip
 *.pkl
 *.npz
+
+pkl_fileformat/*
+
+
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

@@ -4,10 +4,9 @@
 ## ---------------------------------------------------------------------------------------- ##
 ## ---------------------------------------------------------------------------------------- ##
 
-import sys, os
+import sys, os, errno
 import tensorflow as tf
 import warnings, logging
-
 #0 = all messages are logged (default behavior)
 #1 = INFO messages are not printed
 #2 = INFO and WARNING messages are not printed
@@ -18,8 +17,7 @@ warnings.filterwarnings("ignore", category=FutureWarning)
 logging.getLogger('tensorflow').setLevel(logging.INFO)
 
 
-
-## ################################################################################# ##
+## ############################################################################ ##
 import seaborn as sns
 import matplotlib
 import matplotlib.pyplot as plt
@@ -64,33 +62,30 @@ cmap  = plt.cm.Paired
 #matplotlib.rc('legend', edgecolor=(0.1,0.1,0.1))
 
 
-## ################################################################################# ##
+## ############################################################################ ##
 import numpy as np
 import pandas as pd
-import copy, joblib, glob, datetime
+import copy, joblib, glob, time, datetime
 from time import sleep
     
 module_path = os.path.dirname(os.getcwd())+'/../src'
 if module_path not in sys.path:
     sys.path.append(module_path)
+from light_curve import LightCurve
+import functions_keras as m_func
+
+module_path = os.path.dirname(os.getcwd())+'/../scripts'
+if module_path not in sys.path:
+    sys.path.append(module_path)
+
     
 from light_curve import LightCurve
-import functions_preprocess as cf
+import functions_preprocess as m_preprocess #cf
+import functions_keras as m_func #ku
+
 
 dict_filters = {'red':0, 'blue':1}
 
-LC_types = { 1: 'RR_Lyrae_AB',        # RR Lyraes, fundamental mode pulsators
-             2: 'RR_Lyrae_C',         # RR Lyraes, 1st overtone pulsators
-             3: 'RR_Lyrae_E',         # RR Lyraes, 2nd overtone pulsators
-             4: 'Cepheid_Fund',       # Cepheids, fundamental mode pulsators 
-             5: 'Cepheid_1st',        # Cepheid, 1st overtone pulsators
-             6: 'LPV_WoodA',          # Long-Period Variables, Wood Sequence A
-             7: 'LPV_WoodB',          # Long-Period Variables, Wood Sequence B
-             8: 'LPV_WoodC',          # Long-Period Variables, Wood Sequence C
-             9: 'LPV_WoodD',          # Long-Period Variables, Wood Sequence D
-            10: 'Eclipsing_Binary',   # Eclipsing Binaries
-            11:' RR_Lyrae_GB',        # RRL + GB blends (?)
-           }
 
 
 

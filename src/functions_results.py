@@ -18,6 +18,7 @@ _KERAS_EPS = 1e-7  ## LOG_LOSS undefined for probas P in {0,1}, P are clipped to
 import setup_notebook
 
 
+## ############################################################################ ##
 def parse_logs(log_files, max_epoch=250):
     """ ---------------------------------------------------------
         @summary: load training logs (times, epochs)
@@ -51,6 +52,7 @@ def parse_logs(log_files, max_epoch=250):
 
 
 
+## ############################################################################ ##
 def training_plot(logs, loss_type="Valid", ylim=None,  wi=11, hei=8, siz=14,
                   ax=None, leg=None, linestyle=None, yscale="log",ylab="Loss"):
     """ ---------------------------------------------------------
@@ -78,27 +80,28 @@ def training_plot(logs, loss_type="Valid", ylim=None,  wi=11, hei=8, siz=14,
     
         
 
+## ############################################################################ ##
 def run_args(mpath_json):
     """ ---------------------------------------------------------
         @summary: List of main hyperparameters in a model
     ---------------------------------------------------------- """
-    list_fields = ['model_type','nb_passbands','nb_epoch',
-                'run_generator','batch_size','sizenet','num_layers',
-                'n_stacks','max_dilation','embedding','drop_frac',
-                'diff_time','categorical','add_metadata','bidirectional',
-                'config_wavenet','kernel_size','kernel_wavenet',
-                'm_activation','m_reductionfactor','use_skip_connections',
-                'nbpoints','period_fold','padding','ss_resid','use_raw',
-                'metrics','loss','loss_weights','loss_weights_list','validation_split']
+    list_fields = [ 'model_type','nb_passbands','nb_epoch',
+                    'run_generator','batch_size','sizenet','num_layers',
+                    'n_stacks','max_dilation','embedding','drop_frac',
+                    'diff_time','categorical','add_metadata','bidirectional',
+                    'config_wavenet','kernel_size','kernel_wavenet',
+                    'm_activation','m_reductionfactor','use_skip_connections',
+                    'nbpoints','period_fold','padding','ss_resid','use_raw',
+                    'metrics','loss','loss_weights','loss_weights_list','validation_split']
     with open(mpath_json) as json_file:
         mjson_dict = json.load(json_file)
         vals = [mjson_dict[e] for idx,e in enumerate(margs_structure._fields) if e in list(mjson_dict.keys())]
         mjson_struct = namedtuple('Params_run_json', list_fields)(*vals)
-        #mjson_struct = namedtuple('Params_run_json', mjson.keys())(*mjson.values())
     return mjson_dict, mjson_struct
 
 
 
+## ############################################################################ ##
 def get_confmat(YTRUE_, YPRED_, CLASSNAMES_):
     """ ---------------------------------------------------------
         @summary: compute confusion matrices (%, counts)
@@ -110,6 +113,7 @@ def get_confmat(YTRUE_, YPRED_, CLASSNAMES_):
 
 
 
+## ############################################################################ ##
 def plot_confusion_matrix(cm, cm_cnt, m_classnames, idrun, m_title):
     """ ---------------------------------------------------------
         @summary: display of confusion matrices (%, counts)
@@ -178,6 +182,7 @@ def plot_confusion_matrix(cm, cm_cnt, m_classnames, idrun, m_title):
     
     
 
+## ############################################################################ ##
 def categorical_to_label(ypred_cat, dict_types):
     """ ---------------------------------------------------------
         @summary: convert categorical labels

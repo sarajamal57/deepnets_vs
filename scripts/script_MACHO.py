@@ -5,13 +5,12 @@
 ## ---------------------------------------------------------------------------------------- ##
 
 import sys, os, errno
-
 import numpy as np
 import time, datetime
 import copy, joblib, shutil
 from collections import Counter
 
-module_path = os.path.dirname(os.getcwd())+'/src'
+module_path = os.path.dirname(os.getcwd())+'/../src/'
 if module_path not in sys.path:
     sys.path.append(module_path)
 
@@ -27,28 +26,37 @@ import functions_keras as m_func #ku
 SEED=0
 np.random.seed(SEED)
 
-
 dict_filters = {'red':0, 'blue':1}
 from functions_keras import dict_nfuncs, dict_nruns, list_ae, list_composite, list_clf_meta, list_clf
 
 
+LC_types = { 1: 'RR_Lyrae_AB',        # RR Lyraes, fundamental mode pulsators
+             2: 'RR_Lyrae_C',         # RR Lyraes, 1st overtone pulsators
+             3: 'RR_Lyrae_E',         # RR Lyraes, 2nd overtone pulsators
+             4: 'Cepheid_Fund',       # Cepheids, fundamental mode pulsators 
+             5: 'Cepheid_1st',        # Cepheid, 1st overtone pulsators
+             6: 'LPV_WoodA',          # Long-Period Variables, Wood Sequence A
+             7: 'LPV_WoodB',          # Long-Period Variables, Wood Sequence B
+             8: 'LPV_WoodC',          # Long-Period Variables, Wood Sequence C
+             9: 'LPV_WoodD',          # Long-Period Variables, Wood Sequence D
+            10: 'Eclipsing_Binary',   # Eclipsing Binaries
+            11:' RR_Lyrae_GB',        # RRL + GB blends (?)
+           }
 
-
-## ############################################################################################### ##
-def run_autoencoder(arg_dict, input_lcs, input_metadata, output_dict):
+## ############################################################################ ##
+def run_network(arg_dict, input_lcs, input_metadata, output_dict):
     
-    if (arg_dict.run_id in np.r_[list_ae, list_composite]) & (arg_dict.padding): ## fixend lengths data 
+    if (arg_dict.run_id in np.r_[list_ae, list_composite])&(arg_dict.padding): ## fixed-length  
         print('TRAIN BACTH')
-        m_func.run_autoencoder_pad(arg_dict, input_lcs, input_metadata, output_dict)
+        m_func.run_network_pad(arg_dict, input_lcs, input_metadata, output_dict)
     else:
         print('TRAIN GENERATORS')
-        m_func.run_autoencoder_gen(arg_dict, input_lcs, input_metadata, output_dict) ## generator function
-
+        m_func.run_network_gen(arg_dict, input_lcs, input_metadata, output_dict) 
+        
     return 1;
     
             
-
-## ############################################################################################### ##
+## ############################################################################ ##
 def get_data(arg_dict, fileformat='pkl'):
     ''' ---------------------------------------------------------
         Load stored preprocessed data 
@@ -70,9 +78,9 @@ def get_data(arg_dict, fileformat='pkl'):
         output_dict = np.load(data_dir+'MACHO_labels.npz', allow_pickle=True)
         
         ## Xmeta
-        input_metadata['selected']  = pd.read_excel(meta_dir, sheet_name='selected_metadata', index_col=0)
-        #input_metadata['full_meta'] = pd.read_excel(meta_dir, sheet_name='full_metadata', index_col=0)  ## unused
-        
+        input_metadata['selected']  = pd.read_excel(meta_dir, 
+                                                    sheet_name='selected_metadata',  #'full_metadata'
+                                                    index_col=0)
         ## Xphot
         input_lcs['data_id']     = data_id
         input_lcs['data_norm']   = 'raw_LCs'       if arg_dict.use_raw     else 'normalized_LCs'
@@ -105,9 +113,7 @@ def get_data(arg_dict, fileformat='pkl'):
 
 
 
-    
-    
-## ############################################################################################### ##
+## ############################################################################ ##
 def set_params_cline(args):    
     ''' ---------------------------------------------------------
         Set parameters 
@@ -117,7 +123,11 @@ def set_params_cline(args):
     m_dateformat = '%m%d%Y'
     m_date = datetime.datetime.now().strftime(m_dateformat)
     
+    args.sim_type = args.sim_type+('_fixedlength' if args.padding else '_generator')
     args.sim_type += f'_{m_date}'
+    
+    args.data_store = os.path.dirname(os.getcwd())+ args.data_store 
+    args.output_store = os.path.dirname(os.getcwd())+ args.output_store
     
     nb_passbands=2 if args.data_id=='multiple' else 1
            
@@ -134,8 +144,8 @@ def set_params_cline(args):
         args.metrics={}; args.loss={}; args.loss_weights={}
         
         ## ENCODER-CLF BRANCH
-        args.loss         ['clf_softmax_dense'] = args.loss_CLF    #'categorical_crossentropy' if categorical else 'logcosh'
-        args.metrics      ['clf_softmax_dense'] = args.metrics_CLF #'categorical_accuracy'     if categorical else 'accuracy'
+        args.loss         ['clf_softmax_dense'] = args.loss_CLF    
+        args.metrics      ['clf_softmax_dense'] = args.metrics_CLF 
         args.loss_weights ['clf_softmax_dense'] = loss_w1
         
         ## ENCODER-DECODER BRANCH
@@ -164,10 +174,6 @@ def set_params_cline(args):
         args.metrics      ['clf_softmax_dense'] = args.metrics_CLF
         args.loss_weights ['clf_softmax_dense'] = loss_w1
         
-        #args.loss         = {'clf_softmax_dense': 'categorical_crossentropy' if categorical else 'logcosh'} 
-        #args.metrics      = {'clf_softmax_dense': 'categorical_accuracy'     if categorical else 'accuracy'}
-        #args.loss_weights = {'clf_softmax_dense': loss_w1}
-    
     args.n_min = 200  
     m_func.print_args(args)
     
@@ -175,9 +181,8 @@ def set_params_cline(args):
 
 
 
-## ############################################################################################### ##
+## ############################################################################ ##
 def main(args=None):
-    m_preprocess.print_versions()
     
     np.random.seed(SEED)
     
@@ -205,7 +210,7 @@ def main(args=None):
     print("\n*Execution time : {:0>2} h {:0>2} min {:05.2f} s".format(int(hours), int(minutes), seconds))
 
 
-## ############################################################################################### ##
+## ############################################################################ ##
 if __name__ == "__main__":
     args = m_func.parse_model_args()
     main(args)

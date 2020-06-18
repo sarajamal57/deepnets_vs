@@ -17,7 +17,6 @@
 ## ---------------------------------------------------------------------------------------- ##
 ## ---------------------------------------------------------------------------------------- ##
 
-
 import argparse, csv
 from functools import wraps
 from itertools import cycle, islice
@@ -40,8 +39,8 @@ from collections import Iterable, OrderedDict
 SEED=0
 np.random.seed(SEED)
 
-
-import nets_ae_clf as m_nets #m_dln
+## ############################################################################ ##
+import nets_ae_clf as m_nets 
 dict_nruns = {0 : 'classifier_MLP_meta',
               #
               1 : 'classifier_direct_RNN',
@@ -77,8 +76,7 @@ list_ae  = [4,5,6]
 list_composite = [7,8,9] 
 
 
-
-## ######################################################################################################## ##
+## ############################################################################ ##
 from IPython import get_ipython             
 if 'get_ipython' in vars() and get_ipython().__class__.__name__ == 'ZMQInteractiveShell':
     from keras_tqdm import TQDMNotebookCallback as Progbar
@@ -88,24 +86,20 @@ else:
     class Progbar(TQDMCallback):  # redirect TQDMCallback to stdout
         def __init__(self): #, output_file):
             TQDMCallback.__init__(self)
-            #self.output_file = output_file 
-            self.output_file = sys.stdout
+            self.output_file = sys.stdout  #output_file
 #import resource
 #class MemoryCallback(Callback):
 #    def on_epoch_end(self, epoch, log={}):
 #        print(resource.getrusage(resource.RUSAGE_SELF).ru_maxrss)
 
 
-## ######################################################################################################## ##
+## ############################################################################ ##
 class LogDirLogger(Callback):
     def __init__(self, log_dir):
         self.log_dir = log_dir 
 
-    #def on_epoch_begin(self, epoch, logs=None):
-    #    print('\n ' + self.log_dir + '\n')
-
     
-## ######################################################################################################## ##
+## ############################################################################ ##
 class TimedCSVLogger(CSVLogger):
     def on_epoch_end(self, epoch, logs=None):
         logs = logs or {}
@@ -135,7 +129,7 @@ class TimedCSVLogger(CSVLogger):
         self.csv_file.flush()
 
         
-## ######################################################################################################## ##
+## ############################################################################ ##
 def noisify_samples(inputs, outputs, errors, batch_size=500, sample_weight=None):
     """ ---------------------------------------------------------
         @summary: Generate noisier versions from the data
@@ -160,7 +154,7 @@ def noisify_samples(inputs, outputs, errors, batch_size=500, sample_weight=None)
             yield ([X_noisy[inds], X_aux[inds]], X_noisy[inds, :, 1:2], sample_weight[inds])
 
             
-## ######################################################################################################## ##
+## ############################################################################ ##
 def print_args(args):
     sep = 42*'-'
     print(f"\n\t# {sep} #\n\t# --------[ SESSION - HYPERPARAMS ] -------- # \n\t# {sep} #\n")
@@ -168,7 +162,7 @@ def print_args(args):
             print( '\t',arg,'\t:', getattr(args, arg))    
 
 
-## ######################################################################################################## ##
+## ############################################################################ ##
 def parse_model_args(arg_dict=None):
     """ ---------------------------------------------------------
         @summary: Parse command line arguments  
@@ -203,7 +197,7 @@ def parse_model_args(arg_dict=None):
     parser.add_argument("--bidirectional", dest='bidirectional', action='store_true')
     
     
-    ## TEMPO NET params
+    ## NET params
     parser.add_argument("--output_size_cw", type=int, default=None)
     parser.add_argument("--n_stacks", type=int, default=None)
     parser.add_argument("--max_dilation", type=int, default=None)
@@ -222,23 +216,12 @@ def parse_model_args(arg_dict=None):
     
     ## General params
     parser.add_argument("--use_raw", dest='use_raw', action='store_true')
-    #
-    ##parser.add_argument("--add_meta", type=int, default=None)
-    ##parser.add_argument("--catalog_meta", type=int, default=None)
-    #
-    #
     parser.add_argument("--add_metadata", dest='add_metadata', action='store_true')
     #
-    #
-    ##parser.add_argument("--meta_augm", dest= 'meta_augm', action='store_true')
     parser.add_argument("--causal", dest='causal', action='store_true')
     parser.add_argument("--aux_in", dest='aux_in', action='store_true')
     
     parser.add_argument("--categorical", dest='categorical', action='store_true')
-    
-    #parser.add_argument("--loss", type=str, default='mse')
-    #parser.add_argument("--metrics", type=str, default='')
-    #parser.add_argument("--loss_weights", type=float, nargs='*')
     parser.add_argument("--loss_weights_list", help='delimited list input', type=str, default=None)
     parser.add_argument("--validation_split", type=float, default=0.0)
     #
@@ -255,8 +238,6 @@ def parse_model_args(arg_dict=None):
     parser.add_argument("--lomb_score",  type=float, default=None)
     parser.add_argument("--survey_files", type=str,  nargs='*')
     
-    ##parser.add_argument("--rebin", dest='rebin', action='store_true')
-    ##parser.add_argument("--gp_down", dest='gp_down', action='store_true')
     parser.add_argument("--nbpoints",    type=int, default=200)
     parser.add_argument("--padding",     dest='padding', action='store_true')
     parser.add_argument("--diff_time",   dest='diff_time', action='store_true')
@@ -277,21 +258,15 @@ def parse_model_args(arg_dict=None):
     
     parser.add_argument("--pool", type=int, default=None) #u
     parser.add_argument("--sigma", type=float, default=2e-9)
-    ##parser.add_argument("--first_N", type=int, default=None)
-    
-    ##parser.add_argument("--even",   dest='even', action='store_true')
-    ##parser.add_argument("--uneven", dest='even', action='store_false')
-    
     
     parser.set_defaults(#even=False, 
                         bidirectional=False, noisify=False, period_fold=False)
-    # Don't read argv if arg_dict present
+    
     args = parser.parse_args(None if arg_dict is None else [])
 
-    if arg_dict:  # merge additional arguments w/ defaults
+    if arg_dict:  
         args = argparse.Namespace(**{**args.__dict__, **arg_dict})
         
-    #required_args = ['sizenet', 'num_layers', 'drop_frac', 'lr', 'model_type', 'sim_type', 'nbpoints']
     required_args = ['run_id', 'sizenet', 'drop_frac', 'learning_rate', 'model_type'] 
     for key in required_args:
         if getattr(args, key) is None:
@@ -300,16 +275,14 @@ def parse_model_args(arg_dict=None):
     return args
 
 
-## ######################################################################################################## ##
+## ############################################################################ ##
 def get_run_id(data_id, model_type, sizenet, num_layers, learning_rate, batch_size, nb_epoch, 
                n_min=None, drop_frac=0.0, embedding=None, diff_time=None, period_fold=None, 
                add_metadata=None,  padding=None, aux_in=None, categorical=None, decode_type=None, 
                decode_layers=None, param_str=None, add_freqs=None, loss_weights=None, use_raw=None,
                m_activation=None,  **kwargs):
-    #ss_resid=None, #add_meta=None, catalog_meta=None,  #gp_down=None,
-               
     """ ---------------------------------------------------------
-        @summary: Generate unique ID from model parameters
+        @summary: generate unique ID from model parameters
     ---------------------------------------------------------- """
     run = '[{}]'.format(data_id)
     
@@ -334,24 +307,8 @@ def get_run_id(data_id, model_type, sizenet, num_layers, learning_rate, batch_si
     if nb_epoch:
         run += '_nepoch{}'.format(nb_epoch)
 
-    #if ss_resid is not None:
-    #    if ss_resid>0:
-    #        run+='_ssr{}'.format(int(ss_resid*100))
-        
-    #if n_min is not None:
-    #    if n_min>0:
-    #        run+='_nmin{}'.format(n_min)
-            
-    #if add_meta is not None:
-    #    #run+='_meta{}'.format(add_meta)
-    #    if catalog_meta is not None:
-    #        run+='_metactg{}'.format(catalog_meta)
-    #else:
-    #    run+='_nometa'
-     
     if add_metadata is not None:
-        run+='_metadata'
-            
+        run+='_metadata'           
     else:
         run+='_nometa'
         
@@ -363,10 +320,6 @@ def get_run_id(data_id, model_type, sizenet, num_layers, learning_rate, batch_si
 
     if padding:
         run+='_pad'
-        #if gp_down:
-        #    run+='_padgp'
-        #else:
-        #    run+='_padval'
     else:
         run+='_gen'
 
@@ -402,15 +355,13 @@ def get_run_id(data_id, model_type, sizenet, num_layers, learning_rate, batch_si
             
         if (model_type not in ['LSTM', 'GRU']) & (m_activation is not None) :
             run+=f'_{m_activation}'
-    
-
     return run
 
 
-## ######################################################################################################## ##
+## ############################################################################ ##
 def limited_memory_session(gpu_frac):
     
-    init_op = tf.global_variables_initializer() #tf.initialize_all_variables() ##deprecated
+    init_op = tf.global_variables_initializer() 
     if gpu_frac <= 0.0:
         m_session = tf.Session()
         m_session.run(init_op)
@@ -424,52 +375,43 @@ def limited_memory_session(gpu_frac):
         K.set_session(m_session)
 
         
-        
-## ############################################################################################### ##
-def generator_lc(list_lcs, label_lcs, idx, nb_epoch=100, data_id=None, meta_liste=None, sel_keys=None):
+## ############################################################################ ##
+def generator_lc(list_lcs, label_lcs, 
+                 idx, #nb_epoch=100, 
+                 data_id=None, 
+                 meta_liste=None, 
+                 sel_keys=None, 
+                 dict_filters = {'red':0, 'blue':1}):
     
-    dict_filters = {'red':0, 'blue':1}
-    
-    counter_epochs = 0
     nclasses = label_lcs.shape[1]
     
-    while counter_epochs <= nb_epoch: #True:
-        counter_epochs+=1
-        
+    while True: 
         sel_keys =list(list_lcs.keys())
-        
-        for i in idx:
-            counter_pb=-1
+        for i in idx: 
+            counter_pb=0  # passbands
             X_input={}
             for mkey in sel_keys:
-                counter_pb+=1
-                
-                lc = list_lcs[mkey][i]
-                
+                lc = list_lcs[mkey][i]         
                 length_lc = len(lc.times)
-               
                 X = np.ndarray((1,length_lc, 3))
                 X[0,:,0] = lc.times  
                 X[0,:,1] = lc.measurements  
                 X[0,:,2] = 0 if data_id is None else dict_filters[data_id]
-    
                 #sample_weight = np.ndarray((1,length_lc))
-                #sample_weight[0,:] = 1/lc.errors
-                
-                X_input[f'main_input_pb{counter_pb}']=X
+                #sample_weight[0,:] = 1/lc.errors            
+                X_input[f'main_input_pb{counter_pb}']=X 
+                counter_pb+=1
                 
             Y = np.ndarray((1, nclasses), dtype=np.int8)
-            Y[0,:] = label_lcs[i,:] # categorical
-                
+            Y[0,:] = label_lcs[i,:] # categorical           
             if meta_liste is not None:
-                X_input['meta_input']=meta_liste[[i],:] # meta per object
+                X_input['meta_input']=meta_liste[[i],:] 
+                
             
-            
-            yield X_input,Y #,err_norm
-            
+            yield X_input,Y #sample_weight
             
 
-## ######################################################################################################## ##
+## ############################################################################ ##
 def train_and_log(X, X_list, Y, run, model, nb_epoch, 
                   batch_size, learning_rate, loss, sim_type, metrics=[], data_id=None,
                   loss_weights=None, store_local=True, data_storedpath=None, output_store=None,
@@ -479,20 +421,13 @@ def train_and_log(X, X_list, Y, run, model, nb_epoch,
                   validation_split=0.2, validation_data=None, gpu_frac=None,
                   noisify=False, errors=None, pretrain_weights=None, **kwargs):
     """ ---------------------------------------------------------
-        @summary: Train model and write logs/model/history/weights to `outputs/keras_models/{run_id}/`
-            if weights already exist, load.
-        @return history :
-        @return args_session :   
+        @summary: Train model & write logs.
+                  If weights/model already exist, load.
+        @return  :
     ---------------------------------------------------------- """
-    """Train model and write logs/weights to `outputs/keras_models/{run_id}/`.
     
-    If weights already existed, they will be loaded and training will be skipped.
-    """
-    
-    ##    limited_memory_session(gpu_frac)
+    #limited_memory_session(gpu_frac)  ## moved in run_network_**
     log_dir = os.path.join(output_store, sim_type, run)
-    print(output_store, '\n', log_dir)
-    
     
     weights_path = os.path.join(log_dir, 'weights.h5')
     model_path   = os.path.join(log_dir, 'model.h5')
@@ -512,15 +447,13 @@ def train_and_log(X, X_list, Y, run, model, nb_epoch,
         args_session = joblib.load(m_arg_path)
         #
         loaded = True
-    
     #elif (no_train) or (finetune_rate):
     #    #raise FileNotFoundError("No weights found in {}.".format(log_dir))
     
     if finetune_rate:  # write logs to new directory
         log_dir += "_ft{:1.0e}".format(finetune_rate).replace('e-', 'm')
         
-    if (not loaded):
-        
+    if (not loaded):    
         optimizer = Adam(lr=learning_rate if not finetune_rate else finetune_rate)  #, decay=decay
         if sample_weight_mode is None:
             sample_weight_mode = 'temporal' if sample_weight is not None else None
@@ -560,11 +493,11 @@ def train_and_log(X, X_list, Y, run, model, nb_epoch,
         verbose=2 
         if (m_generator):
             history = model.fit_generator(generator_lc(X_list, Y, 
-                                                       idx_training, nb_epoch, 
+                                                       idx_training,  
                                                        data_id, meta_liste), 
                                           #class_weight=class_weights_train,
                                           validation_data=generator_lc(X_list, Y, 
-                                                                       idx_validation, nb_epoch, 
+                                                                       idx_validation, 
                                                                        data_id, meta_liste),
                                           epochs=nb_epoch, 
                                           steps_per_epoch= len(idx_training),
@@ -588,8 +521,8 @@ def train_and_log(X, X_list, Y, run, model, nb_epoch,
                                     class_weight=class_weight,
                                     callbacks=[#Progbar(),  
                                                #TensorBoard(log_dir=log_dir, write_graph=True),
-                                               TimedCSVLogger(os.path.join(log_dir, 
-                                                                           'training.csv'),append=True),
+                                               TimedCSVLogger(os.path.join(log_dir,  'training.csv'),
+                                                              append=True),
                                                EarlyStopping(patience=patience), 
                                                ModelCheckpoint(weights_path, save_weights_only=True, 
                                                                save_best_only=True, verbose=False),
@@ -599,37 +532,37 @@ def train_and_log(X, X_list, Y, run, model, nb_epoch,
                                     validation_data=validation_data)
             '''
             else:
-                history = model.fit_generator(noisify_samples(X, Y, errors, batch_size,sample_weight),
+                history = model.fit_generator(noisify_samples(X, Y, errors, 
+                                                              batch_size,sample_weight),
                                               samples_per_epoch=len(Y), epochs=nb_epoch,
-                                              callbacks=[#Progbar(),
-                                                         #TensorBoard(log_dir=log_dir, write_graph=False),
+                                              callbacks=[Progbar(),
+                                                         TensorBoard(log_dir=log_dir, 
+                                                                     write_graph=False),
                                                          EarlyStopping(patience=patience), 
-                                                         TimedCSVLogger(os.path.join(log_dir, 'training.csv'),
+                                                         TimedCSVLogger(os.path.join(log_dir, 
+                                                                                     'training.csv'),
                                                                          append=True),
-                                                         ModelCheckpoint(weights_path, save_weights_only=True, 
-                                                                                       save_best_only=True, 
+                                                         ModelCheckpoint(weights_path, 
+                                                                         save_weights_only=True,                                                                           
+                                                                         save_best_only=True, 
                                                          verbose=False),
                                                          LogDirLogger(log_dir)],
                                               verbose=verbose,
                                               validation_data=validation_data)
-                '''
+            '''
         print('--> Model trained.')
         
         model_path = os.path.join(log_dir, 'model.h5')
         model.save(model_path)
-        
-        ## moved to run_autoencoder_** 
-        #joblib.dump(history, history_path)        
-    
-    
-    ## moved to run_autoencoder_** 
-    #K.clear_session()                              
+        #joblib.dump(history, history_path)     # moved to run_network_**      
+    #K.clear_session()    # moved to run_network_**                           
     
     return history, args_session
 
 
-## ############################################################################################### ##
-def run_autoencoder_gen(arg_dict, input_lcs, input_metadata, output_dict):
+
+## ############################################################################ ##
+def run_network_gen(arg_dict, input_lcs, input_metadata, output_dict):
     
     ## ------------------- DATA ------------------- ##
     LC_types    = output_dict['LC_types']
@@ -705,7 +638,7 @@ def run_autoencoder_gen(arg_dict, input_lcs, input_metadata, output_dict):
     
     if arg_dict.gpu_frac is not None:
         #ku.limited_memory_session(arg_dict.gpu_frac)
-        init_op = tf.global_variables_initializer() #tf.initialize_all_variables() ##deprecated
+        init_op = tf.global_variables_initializer() 
         if arg_dict.gpu_frac <= 0.0:
             m_session = tf.Session()
             m_session.run(init_op)
@@ -726,8 +659,6 @@ def run_autoencoder_gen(arg_dict, input_lcs, input_metadata, output_dict):
                                               **vars(arg_dict)
                                              )                                      
     print(m_model.summary())
-    
-    
     
     ## ------------------- CLASS WEIGHTS ------------------- ##
     class_weights_train = None
@@ -791,11 +722,8 @@ def run_autoencoder_gen(arg_dict, input_lcs, input_metadata, output_dict):
 
 
 
-
-
-
-## ############################################################################################### ##
-def run_autoencoder_pad(arg_dict, input_lcs, input_metadata, output_dict):
+## ############################################################################ ##
+def run_network_pad(arg_dict, input_lcs, input_metadata, output_dict):
     
     ## ------------------- DATA ------------------- ##
     LC_types    = output_dict['LC_types']
@@ -822,6 +750,7 @@ def run_autoencoder_pad(arg_dict, input_lcs, input_metadata, output_dict):
         X_phot[mkey]   = X_phot[mkey][:,:,[0,1,3]]  # retain mag + times + passbands
         
         if (arg_dict.run_id in np.r_[list_ae, list_composite]):
+            
             if arg_dict.loss['decode_pb0_time_dist'] =='mse':
                 ## NAUL+18 use sample_weights=1/sigma in MSE
                 sample_weights[mkey] = 1/(err_phot[mkey]) ## 1/(err_phot[mkey]**2)
@@ -848,7 +777,7 @@ def run_autoencoder_pad(arg_dict, input_lcs, input_metadata, output_dict):
                                 random_state=SEED).split(X_phot[pb_keys[0]][idx_training_full,:,:], 
                                                          Y_label_int[idx_training_full,]) 
     idx_training_, idx_validation_ = list(stratif2)[0]
-    idx_training    = idx_training_full[idx_training_]
+    idx_training   = idx_training_full[idx_training_]
     idx_validation = idx_training_full[idx_validation_]
     
     ## ------------------ DATA ------------------- ##
@@ -935,8 +864,7 @@ def run_autoencoder_pad(arg_dict, input_lcs, input_metadata, output_dict):
     m_datapoints = max_lenght[0] if arg_dict.padding else None
     
     if arg_dict.gpu_frac is not None:
-        #limited_memory_session(arg_dict.gpu_frac)
-        init_op = tf.global_variables_initializer() #tf.initialize_all_variables() ##deprecated
+        init_op = tf.global_variables_initializer() 
         if arg_dict.gpu_frac <= 0.0:
             m_session = tf.Session()
             m_session.run(init_op)
@@ -966,7 +894,7 @@ def run_autoencoder_pad(arg_dict, input_lcs, input_metadata, output_dict):
                                                   **vars(arg_dict))
     #
     elif (arg_dict.run_id in list_clf_meta): # encoder-decoder
-        m_model, param_str, param_dict = net_func(output_size = nclasses if arg_dict.categorical else 1,
+        m_model, param_str, param_dict = net_func(output_size=nclasses if arg_dict.categorical else 1,
                                                   add_meta=meta_liste.shape[1] if arg_dict.add_metadata else None,
                                                   **vars(arg_dict))   
     #
@@ -977,8 +905,6 @@ def run_autoencoder_pad(arg_dict, input_lcs, input_metadata, output_dict):
                                                   return_sequences=False,
                                                   add_meta=meta_liste.shape[1] if arg_dict.add_metadata else None,
                                                   **vars(arg_dict))                                              
-                                                                             
-    #print(m_model.summary())
     
     ## ------------------- INPUT NET ------------------- ##
     input_data_train = {}
@@ -1109,9 +1035,9 @@ def run_autoencoder_pad(arg_dict, input_lcs, input_metadata, output_dict):
             
         print('********** sample_weight_mode \t\t= ', sample_weight_mode, '\n')
    
+    
     print(m_model.summary())
    
-
     ## ------------------- COMPILE & TRAIN ------------------- ##
     m_history=None; args_session=None
     m_run = get_run_id(**vars(arg_dict),param_str=param_str)
