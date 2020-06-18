@@ -492,16 +492,12 @@ def train_and_log(X, X_list, Y, run, model, nb_epoch,
         
         verbose=2 
         if (m_generator):
-            history = model.fit_generator(generator_lc(X_list, Y, 
-                                                       idx_training,  
-                                                       data_id, meta_liste), 
+            history = model.fit_generator(generator_lc(X_list, Y, idx_training, data_id, meta_liste), 
+                                          validation_data=generator_lc(X_list, Y, idx_validation, data_id, meta_liste),
                                           #class_weight=class_weights_train,
-                                          validation_data=generator_lc(X_list, Y, 
-                                                                       idx_validation, 
-                                                                       data_id, meta_liste),
                                           epochs=nb_epoch, 
-                                          steps_per_epoch= len(idx_training),
-                                          validation_steps= len(idx_validation),
+                                          steps_per_epoch=len(idx_training),
+                                          validation_steps=len(idx_validation),
                                           callbacks=[#Progbar(),
                                               #TensorBoard(log_dir=log_dir, write_graph=False),
                                               EarlyStopping(patience=patience), 
@@ -510,8 +506,7 @@ def train_and_log(X, X_list, Y, run, model, nb_epoch,
                                               ModelCheckpoint(weights_path, save_weights_only=True, 
                                                               save_best_only=True, verbose=False),
                                               LogDirLogger(log_dir)],
-                                          verbose=verbose) 
-            
+                                          verbose=verbose)             
         else:
             if True: #(not noisify):
                 history = model.fit(X, Y, 
@@ -532,18 +527,14 @@ def train_and_log(X, X_list, Y, run, model, nb_epoch,
                                     validation_data=validation_data)
             '''
             else:
-                history = model.fit_generator(noisify_samples(X, Y, errors, 
-                                                              batch_size,sample_weight),
+                history = model.fit_generator(noisify_samples(X, Y, errors,batch_size,sample_weight),
                                               samples_per_epoch=len(Y), epochs=nb_epoch,
-                                              callbacks=[Progbar(),
-                                                         TensorBoard(log_dir=log_dir, 
-                                                                     write_graph=False),
+                                              callbacks=[#Progbar(),
+                                                         #TensorBoard(log_dir=log_dir, write_graph=False),
                                                          EarlyStopping(patience=patience), 
-                                                         TimedCSVLogger(os.path.join(log_dir, 
-                                                                                     'training.csv'),
+                                                         TimedCSVLogger(os.path.join(log_dir, 'training.csv'),
                                                                          append=True),
-                                                         ModelCheckpoint(weights_path, 
-                                                                         save_weights_only=True,                                                                           
+                                                         ModelCheckpoint(weights_path, save_weights_only=True,                                                                           
                                                                          save_best_only=True, 
                                                          verbose=False),
                                                          LogDirLogger(log_dir)],
@@ -612,7 +603,7 @@ def run_network_gen(arg_dict, input_lcs, input_metadata, output_dict):
     
     
      ## ---------------------- ## CLASS FREQUENCY ## ---------------------- ##
-    classnames = np.r_[0, np.unique(Y_label_int)] 
+    classnames  = np.r_[0, np.unique(Y_label_int)] 
     counter_all = np.sum(Y_label_cat, axis=0) #Counter(Y_label_int)
     sum_all     = np.sum(counter_all)
     
@@ -854,14 +845,14 @@ def run_network_pad(arg_dict, input_lcs, input_metadata, output_dict):
                    '\n' )
         
     ## ------------------- ARCHITECTURE ------------------- ##
-    sel_keys = pb_keys[:-1] if arg_dict.data_id=='multiple' else pb_keys
+    sel_keys        = pb_keys  ####
     max_lenght      = [X_phot[mkey].shape[1] for mkey in sel_keys]
     input_dimension = X_phot[pb_keys[0]].shape[-1]    # = 3,  times + mags + passbands
     
     
     net_func = dict_nfuncs[arg_dict.run_id]
     m_model=None; param_str=None; param_dict=None
-    m_datapoints = max_lenght[0] if arg_dict.padding else None
+    #m_datapoints = max_lenght[0] if arg_dict.padding else None
     
     if arg_dict.gpu_frac is not None:
         init_op = tf.global_variables_initializer() 
@@ -880,28 +871,28 @@ def run_network_pad(arg_dict, input_lcs, input_metadata, output_dict):
     
     if (arg_dict.run_id in list_ae): # encoder-decoder
         m_model, param_str, param_dict = net_func(input_dimension, 
-                                                  max_lenght = max_lenght,
-                                                  gp_down_size = m_datapoints,
+                                                  max_lenght=max_lenght,
+                                                  #gp_down_size=m_datapoints,
                                                   add_meta=meta_liste.shape[1] if arg_dict.add_metadata else None,
                                                   **vars(arg_dict))
     #    
     elif (arg_dict.run_id in list_composite): # ae-clf
         m_model, param_str, param_dict = net_func(input_dimension, 
-                                                  max_lenght = max_lenght,
-                                                  output_size = nclasses if arg_dict.categorical else 1,
-                                                  gp_down_size = m_datapoints,
+                                                  max_lenght=max_lenght,
+                                                  output_size=nclasses if arg_dict.categorical else 1,
+                                                  #gp_down_size=m_datapoints,
                                                   add_meta=meta_liste.shape[1] if arg_dict.add_metadata else None,
                                                   **vars(arg_dict))
     #
-    elif (arg_dict.run_id in list_clf_meta): # encoder-decoder
+    elif (arg_dict.run_id in list_clf_meta): # clf
         m_model, param_str, param_dict = net_func(output_size=nclasses if arg_dict.categorical else 1,
                                                   add_meta=meta_liste.shape[1] if arg_dict.add_metadata else None,
                                                   **vars(arg_dict))   
     #
     else: #'classifiers'
         m_model, param_str, param_dict = net_func(input_dimension, 
-                                                  max_lenght = max_lenght,
-                                                  output_size = nclasses if arg_dict.categorical else 1,
+                                                  max_lenght=max_lenght,
+                                                  output_size=nclasses if arg_dict.categorical else 1,
                                                   return_sequences=False,
                                                   add_meta=meta_liste.shape[1] if arg_dict.add_metadata else None,
                                                   **vars(arg_dict))                                              
@@ -1020,6 +1011,7 @@ def run_network_pad(arg_dict, input_lcs, input_metadata, output_dict):
                 counter_pb+=1
                 print('********** sample_weights \t\t= ' , 
                       sample_weights_train.keys(),
+                      sample_weights_valid.keys(),
                       #sample_weights_train[f'decode_pb{counter_pb}_time_dist'].shape,
                       #sample_weights_valid[f'decode_pb{counter_pb}_time_dist'].shape
                      )

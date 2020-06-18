@@ -436,7 +436,7 @@ def classifier_direct_dTCN(input_dimension, output_size, sizenet,
                                
         ## Output per band ##
         if not return_sequences:
-            if max_lenght is None:   ### 050620
+            if max_lenght is None:  
                  encode = Lambda(lambda y: y[:, -1,:], name='encode_pb{}_lambda'.format(j))(encode)
             else:
                 encode = Flatten(name='encode_pb{}_flat'.format(j))(encode)
@@ -496,7 +496,6 @@ def composite_net_RNN(input_dimension, sizenet,
                       model_type='LSTM',
                       bidirectional = True,
                       aux_in = True,
-                      gp_down_size = None,
                       add_meta = None,
                       add_dense = False,
                       **kwargs):
@@ -516,12 +515,11 @@ def composite_net_RNN(input_dimension, sizenet,
         main_input = Input(shape=(ndatapoints, input_dimension), name='main_input_pb{}'.format(j))
         main_input_list.append(main_input)
        
-    total_datapoints = np.sum(max_lenght) if gp_down_size is None else gp_down_size
     if aux_in:
         aux_input_concat=[]
         for j in range(nb_passbands):
-            aux_input_concat.append( Input(shape=(total_datapoints, input_dimension-1), 
-                                           name='aux_input_concat_pb{}'.format(j)))
+            aux_input_concat.append(Input(shape=(max_lenght[j], input_dimension-1), 
+                                          name='aux_input_concat_pb{}'.format(j)))
     else :
         aux_input_concat = None
         
@@ -558,7 +556,8 @@ def composite_net_RNN(input_dimension, sizenet,
         decode = encode_list[j]
         
         ## Reshape ##
-        decode = RepeatVector(total_datapoints, name='decode_pb{}_repeat'.format(j))(decode)
+        decode = RepeatVector(max_lenght[j], #total_datapoints, 
+                              name='decode_pb{}_repeat'.format(j))(decode)
         if aux_in :   
             decode = concatenate([aux_input_concat[j], decode], name='decode_pb{}_aux_concat'.format(j))
             
@@ -653,7 +652,6 @@ def composite_net_tCNN(input_dimension, sizenet,
                        m_reductionfactor = 2,
                        m_activation='tanh', #'relu' has an activation range [0-1], tanh has an activation [-1,1]
                        aux_in = True,
-                       gp_down_size = None,
                        add_meta = None, #
                        add_dense = False, #
                        **kwargs):
@@ -670,15 +668,14 @@ def composite_net_tCNN(input_dimension, sizenet,
     main_input_list = []
     for j in range(nb_passbands):
         ndatapoints = max_lenght if type(max_lenght)==int else max_lenght[j]    
-        main_input = Input(shape=(ndatapoints, input_dimension), name='main_input_pb{}'.format(j))
+        main_input  = Input(shape=(ndatapoints, input_dimension), name='main_input_pb{}'.format(j))
         main_input_list.append(main_input)
   
-    total_datapoints = np.sum(max_lenght) if gp_down_size is None else gp_down_size
     if aux_in:
         aux_input_concat=[]
         for j in range(nb_passbands):
-            aux_input_concat.append( Input(shape=(total_datapoints, input_dimension-1), 
-                                           name='aux_input_concat_pb{}'.format(j)))
+            aux_input_concat.append(Input(shape=(max_lenght[j], input_dimension-1), 
+                                          name='aux_input_concat_pb{}'.format(j)))
     else :
         aux_input_concat = None
     
@@ -748,15 +745,14 @@ def composite_net_tCNN(input_dimension, sizenet,
         decode = encode_list[j]
         
         ## Reshape ##
-        ndtp = ntimes_list[j] 
-        
+        ndtp   = ntimes_list[j] 
         decode = Dense(ndtp*embedding, 
                        activation=m_activation, 
                        name='decode_pb{}_dense'.format(j))(decode)
-        decode = Reshape((ndtp,embedding), name='decode_pb{}_reshape'.format(j))(decode)
-        ##decode = RepeatVector(total_datapoints, name='decode_repeat')(decode)
+        decode = Reshape((ndtp,embedding), 
+                         name='decode_pb{}_reshape'.format(j))(decode)
         
-        if aux_in&(ndtp==total_datapoints):   
+        if aux_in&(ndtp==max_lenght[j]): 
             decode = concatenate([aux_input_concat[j], decode], name='decode_pb{}_aux_concat'.format(j))
             
         size_filter_dec = size_filter 
@@ -765,7 +761,7 @@ def composite_net_tCNN(input_dimension, sizenet,
                 size_n = sizenet  
             else:
                 size_n = sizenet[-i-1] if (len(sizenet)==num_layers) else sizenet
-            size_filter_dec = size_filter *(i+1)    ## //(i+1)
+            size_filter_dec = size_filter*(i+1)    ## //(i+1)
             
             ## ------------------------------ ## ## ------------------------------ ##
             ## Deconvolution ## 
@@ -862,7 +858,7 @@ def composite_net_tCNN(input_dimension, sizenet,
 ##     COMPOSITE NETWORK [3] -  DILATED TCN
 ## --------------------------------------------------------------- ##
 def composite_net_dTCN(input_dimension, sizenet,
-                       embedding, ## bottleneck
+                       embedding,   ## bottleneck
                        output_size, ##n_classes
                        n_stacks, list_dilations = None, max_dilation = None,
                        nb_passbands = 1, max_lenght = None,
@@ -873,7 +869,6 @@ def composite_net_dTCN(input_dimension, sizenet,
                        use_skip_connections = True,
                        kernel_size=3, kernel_wavenet = 1, 
                        aux_in = True,
-                       gp_down_size = None,
                        add_meta = None,
                        add_dense = False,
                        **kwargs):
@@ -906,12 +901,11 @@ def composite_net_dTCN(input_dimension, sizenet,
         main_input = Input(shape=(ndatapoints, input_dimension), name='main_input_pb{}'.format(j))
         main_input_list.append(main_input)
     
-    total_datapoints = np.sum(max_lenght) if gp_down_size is None else gp_down_size
     if aux_in:
         aux_input_concat=[]
         for j in range(nb_passbands):
-            aux_input_concat.append( Input(shape=(total_datapoints, input_dimension-1), 
-                                           name='aux_input_concat_pb{}'.format(j)))
+            aux_input_concat.append(Input(shape=(max_lenght[j], input_dimension-1),
+                                          name='aux_input_concat_pb{}'.format(j)))
     else :
         aux_input_concat = None
         
@@ -971,10 +965,11 @@ def composite_net_dTCN(input_dimension, sizenet,
         decode = encode_list[j]
     
         ## Reshape ##
-        decode = Dense(total_datapoints*embedding, 
+        decode = Dense(embedding*max_lenght[j],  
                        activation=m_activation2, #'relu', 
                        name='decode_pb{}_dense'.format(j))(decode)
-        decode = Reshape((total_datapoints,embedding), name='decode_pb{}_reshape'.format(j))(decode)
+        decode = Reshape((max_lenght[j],  
+                          embedding), name='decode_pb{}_reshape'.format(j))(decode)
         if aux_in:
             decode = concatenate([aux_input_concat[j], decode], name='decode_pb{}_aux_concat'.format(j))
             
@@ -1080,14 +1075,12 @@ def composite_net_dTCN(input_dimension, sizenet,
 ## --------------------------------------------------------------- ##
 def autoencoder_RNN (input_dimension, sizenet,
                      embedding, # bottleneck
-                     output_size, #n_classes
                      nb_passbands = 1, max_lenght = None,
                      num_layers = 1,
                      drop_frac = 0.0,
                      model_type='LSTM',
                      bidirectional = True,
                      aux_in = True,
-                     gp_down_size = None,
                      add_dense = False,
                      **kwargs):
     
@@ -1105,12 +1098,11 @@ def autoencoder_RNN (input_dimension, sizenet,
         main_input = Input(shape=(ndatapoints, input_dimension), name='main_input_pb{}'.format(j))
         main_input_list.append(main_input)
        
-    total_datapoints = np.sum(max_lenght) if gp_down_size is None else gp_down_size
     if aux_in:
         aux_input_concat=[]
         for j in range(nb_passbands):
-            aux_input_concat.append( Input(shape=(total_datapoints, input_dimension-1), 
-                                           name='aux_input_concat_pb{}'.format(j)))
+            aux_input_concat.append(Input(shape=(max_lenght[j],input_dimension-1),
+                                          name='aux_input_concat_pb{}'.format(j)))
     else :
         aux_input_concat = None
         
@@ -1147,7 +1139,8 @@ def autoencoder_RNN (input_dimension, sizenet,
         decode = encode_list[j]
         
         ## Reshape ##
-        decode = RepeatVector(total_datapoints, name='decode_pb{}_repeat'.format(j))(decode)
+        decode = RepeatVector(max_lenght[j],  
+                              name='decode_pb{}_repeat'.format(j))(decode)
         if aux_in :   
             decode = concatenate([aux_input_concat[j], decode], name='decode_pb{}_aux_concat'.format(j))
             
@@ -1185,8 +1178,8 @@ def autoencoder_RNN (input_dimension, sizenet,
     
     m_model = Model(input_layer, output_layer)
     
-    param_str = 'Autoencoder_{}_pb{}_n{}_x{}_drop{}_emb{}_out{}'.format(model_type, nb_passbands, sizenet, 
-                              num_layers, int(drop_frac*100), embedding, output_size)
+    param_str = 'Autoencoder_{}_pb{}_n{}_x{}_drop{}_emb{}'.format(model_type, nb_passbands, sizenet, 
+                              num_layers, int(drop_frac*100), embedding)
     if bidirectional:
         param_str+='_bidir'   
     
@@ -1198,12 +1191,11 @@ def autoencoder_RNN (input_dimension, sizenet,
 
 ## ############################################################################ ##
 ## --------------------------------------------------------------- ##
-##     COMPOSITE NETWORK [2] -  TEMPORAL CNN
+##     AUTOENCODER NETWORK [2] -  TEMPORAL CNN
 ## --------------------------------------------------------------- ##
 def autoencoder_tCNN(input_dimension, sizenet,
                      kernel_size,
                      embedding, ## bottleneck
-                     output_size, #n_classes
                      nb_passbands = 1, max_lenght = None,
                      causal = False,
                      num_layers = 1,
@@ -1211,7 +1203,6 @@ def autoencoder_tCNN(input_dimension, sizenet,
                      m_reductionfactor = 2,
                      m_activation='tanh', #'relu' range [0-1], tanh [-1,1]
                      aux_in = True,
-                     gp_down_size = None,
                      add_dense = False, #
                      **kwargs):
     
@@ -1229,11 +1220,10 @@ def autoencoder_tCNN(input_dimension, sizenet,
         main_input = Input(shape=(ndatapoints, input_dimension), name='main_input_pb{}'.format(j))
         main_input_list.append(main_input)
   
-    total_datapoints = np.sum(max_lenght) if gp_down_size is None else gp_down_size
     if aux_in:
         aux_input_concat=[]
         for j in range(nb_passbands):
-            aux_input_concat.append(Input(shape=(total_datapoints, input_dimension-1), 
+            aux_input_concat.append(Input(shape=(max_lenght[j], input_dimension-1), 
                                           name='aux_input_concat_pb{}'.format(j)))
     else :
         aux_input_concat = None
@@ -1310,9 +1300,8 @@ def autoencoder_tCNN(input_dimension, sizenet,
                        activation=m_activation, 
                        name='decode_pb{}_dense'.format(j))(decode)
         decode = Reshape((ndtp,embedding), name='decode_pb{}_reshape'.format(j))(decode)
-        ##decode = RepeatVector(total_datapoints, name='decode_repeat')(decode)
         
-        if aux_in&(ndtp==total_datapoints):   
+        if aux_in&(ndtp==max_lenght[j]): 
             decode = concatenate([aux_input_concat[j], decode], name='decode_pb{}_aux_concat'.format(j))
             
         size_filter_dec = size_filter 
@@ -1381,8 +1370,8 @@ def autoencoder_tCNN(input_dimension, sizenet,
     
     m_model = Model(input_layer, output_layer)
     
-    param_str = 'Autoencoder_tCNN_pb{}_n{}_x{}_drop{}_cv{}_emb{}_out{}'.format(nb_passbands, sizenet, 
-                                    num_layers, int(drop_frac*100), kernel_size, embedding, output_size)
+    param_str = 'Autoencoder_tCNN_pb{}_n{}_x{}_drop{}_cv{}_emb{}'.format(nb_passbands, sizenet, 
+                                    num_layers, int(drop_frac*100), kernel_size, embedding)
     if m_activation=='wavenet':
         param_str+='_aW'
     if causal:
@@ -1395,11 +1384,10 @@ def autoencoder_tCNN(input_dimension, sizenet,
 
 ## ############################################################################ ##
 ## --------------------------------------------------------------- ##
-##     COMPOSITE NETWORK [3] -  DILATED TCN
+##     AUTOENCODER NETWORK [3] -  DILATED TCN
 ## --------------------------------------------------------------- ##
 def autoencoder_dTCN (input_dimension, sizenet,
                        embedding, ## bottleneck
-                       output_size, ##n_classes
                        n_stacks, list_dilations = None, max_dilation = None,
                        nb_passbands = 1, max_lenght = None,
                        causal = False,
@@ -1409,7 +1397,6 @@ def autoencoder_dTCN (input_dimension, sizenet,
                        use_skip_connections = True,
                        kernel_size=3, kernel_wavenet = 1, 
                        aux_in = True,
-                       gp_down_size = None,
                        add_dense = False,
                        **kwargs):
     
@@ -1434,17 +1421,16 @@ def autoencoder_dTCN (input_dimension, sizenet,
     
     m_padding='causal' if causal else 'same'
     
-    main_input_list = []; #aux_input_list = []
+    main_input_list = []; 
     for j in range(nb_passbands):
         ndatapoints = max_lenght if type(max_lenght)==int else max_lenght[j]
         main_input = Input(shape=(ndatapoints, input_dimension), name='main_input_pb{}'.format(j))
         main_input_list.append(main_input)
     
-    total_datapoints = np.sum(max_lenght) if gp_down_size is None else gp_down_size
     if aux_in:
         aux_input_concat=[]
         for j in range(nb_passbands):
-            aux_input_concat.append(Input(shape=(total_datapoints, input_dimension-1), 
+            aux_input_concat.append(Input(shape=(max_lenght[j], input_dimension-1), 
                                           name='aux_input_concat_pb{}'.format(j)))
     else :
         aux_input_concat = None
@@ -1508,10 +1494,11 @@ def autoencoder_dTCN (input_dimension, sizenet,
         decode = encode_list[j]
     
         ## Reshape ##
-        decode = Dense(total_datapoints*embedding, 
+        decode = Dense(embedding*max_lenght[j],  
                        activation=m_activation2, #'relu', 
                        name='decode_pb{}_dense'.format(j))(decode)
-        decode = Reshape((total_datapoints,embedding), name='decode_pb{}_reshape'.format(j))(decode)
+        decode = Reshape((max_lenght[j], 
+                          embedding), name='decode_pb{}_reshape'.format(j))(decode)
         if aux_in:
             decode = concatenate([aux_input_concat[j], decode], name='decode_pb{}_aux_concat'.format(j))
             
@@ -1574,9 +1561,9 @@ def autoencoder_dTCN (input_dimension, sizenet,
     
     m_model = Model(input_layer, output_layer)
     
-    param_str = 'Autoencoder_dTCN_pb{}_n{}_drop{}_stack{}_dil{}_cv{}_cvW{}_emb{}_out{}'.format(nb_passbands, sizenet,
+    param_str = 'Autoencoder_dTCN_pb{}_n{}_drop{}_stack{}_dil{}_cv{}_cvW{}_emb{}'.format(nb_passbands, sizenet,
                                     int(drop_frac*100),n_stacks, dilation_depth,
-                                    kernel_size, kernel_wavenet, embedding, output_size)
+                                    kernel_size, kernel_wavenet, embedding)
     if m_activation=='wavenet':
         param_str+='_aW'
     if config_wavenet:
