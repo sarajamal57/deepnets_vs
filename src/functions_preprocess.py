@@ -131,7 +131,7 @@ def lags_to_times(dT,t_0 = None):
 ## ############################################################################ ##
 def period_fold(lc, period, pix_rejection = True,
                 epoch_select = 'max_brightness', epoch_t0 = None,
-                extend_2cycles = True, rm_dupli = True):
+                extend_2cycles = True): #, rm_dupli = True):
     ''' Phase folding for light-curves.
         @param period: float, period.
         @param pix_rejection: boolean, rejection outside 0.05 and 0.95 quantiles.
@@ -169,6 +169,7 @@ def period_fold(lc, period, pix_rejection = True,
         if lc.passbands is not None:
             pb_ext = np.concatenate((lc.passbands, lc.passbands))
         
+        '''
         if rm_dupli :# remove duplicates
             phase_ext, inds_ = np.unique(phase_ext, return_index = True) #return_inverse = True)
             lc.times = phase_ext
@@ -177,11 +178,11 @@ def period_fold(lc, period, pix_rejection = True,
             if lc.passbands is not None:
                 lc.passbands = pb_ext[inds_]
             if lc.trend_cesium is not None :
-                lc.trend_cesium = np.concatenate((lc.trend_cesium, lc.trend_cesium))[inds]
+                lc.trend_cesium = np.concatenate((lc.trend_cesium, lc.trend_cesium))[inds_]
             if lc.trend_line is not None :
-                lc.trend_line = np.concatenate((lc.trend_line, lc.trend_line))[inds]
+                lc.trend_line = np.concatenate((lc.trend_line, lc.trend_line))[inds_]
             if lc.trend_spline is not None :
-                lc.trend_spline = np.concatenate((lc.trend_spline, lc.trend_spline))[inds]
+                lc.trend_spline = np.concatenate((lc.trend_spline, lc.trend_spline))[inds_]
         else:
             lc.times = phase_ext
             lc.measurements = meas_ext
@@ -194,6 +195,22 @@ def period_fold(lc, period, pix_rejection = True,
                 lc.trend_line = np.concatenate((lc.trend_line, lc.trend_line))
             if lc.trend_spline is not None :
                 lc.trend_spline = np.concatenate((lc.trend_spline, lc.trend_spline))
+        '''
+        #if rm_dupli :# remove duplicates
+        #    _, inds_ = np.unique(phase_ext, return_index = True) 
+        #else:
+        #    inds_ = range(len(phase_ext))
+        lc.times        = phase_ext  #[inds_]
+        lc.measurements = meas_ext   #[inds_]
+        lc.errors       = errors_ext #[inds_]
+        if lc.passbands is not None:
+            lc.passbands = pb_ext #[inds_]
+        if lc.trend_cesium is not None :
+            lc.trend_cesium = np.concatenate((lc.trend_cesium, lc.trend_cesium))#[inds_]
+        if lc.trend_line is not None :
+            lc.trend_line = np.concatenate((lc.trend_line, lc.trend_line))#[inds_]
+        if lc.trend_spline is not None :
+            lc.trend_spline = np.concatenate((lc.trend_spline, lc.trend_spline))#[inds_]
     
     inds = np.argsort(lc.times)
     lc.times = lc.times[inds]
@@ -429,6 +446,8 @@ def pred_GP_lc (xtimes, ymags, yerrs, mperiod,
 
 ## ############################################################################ ##
 def get_FRandom_vector(xmin, xmax, nbsample):
+    random.seed(1) #
+    
     randomF_vect=[]
     for i in range(nbsample):
         rand_0_1 = (i/(nbsample-1))*random.random()
@@ -439,12 +458,11 @@ def get_FRandom_vector(xmin, xmax, nbsample):
 
 
 ## ############################################################################ ##
-def get_random_timerange(x,dx, nbpoints_up=200, period_crit=None, factor=10, fixed_shift=True) :
+def get_random_timerange(x,dx, nbpoints_up=200, period_crit=None, factor=10, fixed_shift=True):
     
     ## ------------------------- DETECTABLE GAPS ------------------------- ##
     from sklearn.cluster import KMeans
-    import random
-    random.seed(1)
+    random.seed(1) ### 
 
     nclusters = 2 #3
     km = KMeans(n_clusters=nclusters, random_state=0).fit(dx.reshape(-1,1))
@@ -453,9 +471,7 @@ def get_random_timerange(x,dx, nbpoints_up=200, period_crit=None, factor=10, fix
     clusts[0] = np.where(km.labels_==0)[0]
     clusts[1] = np.where(km.labels_==1)[0]
     clusts[2] = np.where(km.labels_==2)[0]
-    #print(Counter(km.labels_))
-    #print(km.cluster_centers_)
-
+    
     id_obs = 0; id_gaps=[]
     if len(clusts[0])<len(clusts[1]):
         id_obs=2 if len(clusts[1])<len(clusts[2])else 1
@@ -474,8 +490,7 @@ def get_random_timerange(x,dx, nbpoints_up=200, period_crit=None, factor=10, fix
     gaps_start_time = np.asarray([x[g] for g in gaps_start_idx])
     gaps_diff_time  = gaps_end_time - gaps_start_time
     ngaps = len(gaps_end_idx)
-    #print('ngaps = ', ngaps)
-
+    
     ## GAPS less than n-cycles are merged within obs data ##
     if period_crit is not None:
         gaps_reject = gaps_diff_time<period_crit
@@ -493,7 +508,6 @@ def get_random_timerange(x,dx, nbpoints_up=200, period_crit=None, factor=10, fix
     for i in range(ngaps +1):
         xstart = 0 if i==0 else gaps_end_idx[i-1]
         xend = len(x)-1 if i==(ngaps) else gaps_end_idx[i]-1
-        #print(f'xstart[{xstart}]\t xend[{xend}]\t xend-xstart[{xend-xstart}]')
         obs_subsets_idx[f'set{i}']= (xstart, xend, xend-xstart)
         obs_subsets_times[f'set{i}'] = [x[xstart]] if xstart==xend else x[xstart:xend]
         
@@ -519,11 +533,9 @@ def get_random_timerange(x,dx, nbpoints_up=200, period_crit=None, factor=10, fix
             ###val_red = np.int(np.floor(v_RED)) if v_RED>1 else 1 ##removed
         else :
             val_red = -1
-        #print(i, '\t', ll, '\t', m_format%(frac_points), '%', '\t',  val_,  '\t',  val_red)
         nbpoints_up_set.append(val_)
         nbpoints_up_set_RED.append(val_red)
 
-    #print('\t >> np.sum(nbpoints_up_set) =', np.sum(nbpoints_up_set))
     if np.sum(nbpoints_up_set)<nbpoints_up:
         missing_points = nbpoints_up-np.sum(nbpoints_up_set)
         amx=np.argmax(nbpoints_up_set)
@@ -533,37 +545,16 @@ def get_random_timerange(x,dx, nbpoints_up=200, period_crit=None, factor=10, fix
         remn_points = np.sum(nbpoints_up_set) - nbpoints_up
         amx=np.argmax(nbpoints_up_set)
         if nbpoints_up_set[amx]>remn_points:
-            #print(amx)
             nbpoints_up_set[amx]-=remn_points
 
     nbcrit = 1
     
     amx_RED=np.argmax(nbpoints_up_set_RED)
     if (nbpoints_up>len_subsets_total):
-        #print(f'N_observed[{len_subsets_total}] < N_fixed[{nbpoints_up}]')
         if np.sum(nbpoints_up_set_RED)<(nbpoints_up-len_subsets_total):
             missing_nb = (nbpoints_up-len_subsets_total)-np.sum(nbpoints_up_set_RED)
             nbpoints_up_set_RED[amx_RED]+=missing_nb
 
-            
-    #id_nb1 = []; id_nb1_RED = []
-    #for s in range(len(nbpoints_up_set)):
-    #    if nbpoints_up_set[s]<=nbcrit: #==1:
-    #        id_nb1.append(s)
-    #    if nbpoints_up_set_RED[s]<=nbcrit: #==1:
-    #        id_nb1_RED.append(s)
-    #
-    #amx=np.argmax(nbpoints_up_set)
-    #dec = int(min(10,nbpoints_up_set[amx]/10*len(id_nb1)))
-    #for l in id_nb1:
-    #    nbpoints_up_set[l]+=dec
-    #nbpoints_up_set[amx]-=dec
-    #
-    #amx_RED=np.argmax(nbpoints_up_set_RED)
-    #dec = int(min(10,nbpoints_up_set_RED[amx_RED]/10*len(id_nb1_RED)))
-    #for l in id_nb1_RED:
-    #    nbpoints_up_set_RED[l]+=dec
-    #nbpoints_up_set_RED[amx_RED]-=dec
 
     ## ------------------------------------------------------------------------------------- ##
     dec_min_all = min(np.diff(x))/2;
@@ -571,7 +562,6 @@ def get_random_timerange(x,dx, nbpoints_up=200, period_crit=None, factor=10, fix
 
 
     if len_subsets_total>=nbpoints_up: #nbpoints_up<len_subsets_total
-        #print(f'\n>> OPTION 1 : N_observed[{len_subsets_total}] > N_fixed[{nbpoints_up}]')
         for i in range(ngaps+1):
             x_subset = obs_subsets_times[f'set{i}']
 
@@ -579,7 +569,7 @@ def get_random_timerange(x,dx, nbpoints_up=200, period_crit=None, factor=10, fix
                 xmin     = x_subset[0]; xmax = x_subset[-1]
 
                 ## TOTAL RANDOM SAMPLE WITHIN TARGET TIME_RANGE
-                nbsample = (nbpoints_up_set[i] if nbpoints_up_set[i]>1 else (nbpoints_up_set[i]+1)) #nm = nbpoints_up_set[i]
+                nbsample = (nbpoints_up_set[i] if nbpoints_up_set[i]>1 else (nbpoints_up_set[i]+1)) #nm= nbpoints_up_set[i]
                 xvec1    = np.sort(random.sample(get_FRandom_vector(xmin, xmax, nbsample),
                                                      k=nbpoints_up_set[i]))
 
@@ -593,7 +583,6 @@ def get_random_timerange(x,dx, nbpoints_up=200, period_crit=None, factor=10, fix
             x_up1.extend(xvec1);x_up2.extend(xvec2)
 
     else:
-        #print(f'\n>> OPTION 2 : N_observed[{len_subsets_total}] < N_fixed[{nbpoints_up}]')
         for i in range(ngaps+1):
             x_subset = obs_subsets_times[f'set{i}']
 

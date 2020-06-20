@@ -191,8 +191,8 @@ class LightCurve():
         
         
     ## ############################################################################ ## 
-    def period_fold(self, period=None, pix_rejection = True, 
-                              epoch_select = 'max_brightness', epoch_t0=None, extend_2cycles = True):
+    def period_fold(self, period=None, pix_rejection=True, epoch_select='max_brightness', 
+                    epoch_t0=None, extend_2cycles=True):#, rm_dupli=True):
         ''' Phase folding for light-curves.
         @param period: float, period.
         @param pix_rejection: boolean, rejection outside 0.05 and 0.95 quantiles.
@@ -232,20 +232,23 @@ class LightCurve():
             if self.passbands is not None :
                 pb_ext = np.concatenate((self.passbands, self.passbands))
                 
-            # remove duplicates
-            phase_ext, inds_  = np.unique(phase_ext, return_index=True) #return_inverse=True)
-            self.times        = phase_ext 
-            self.measurements = meas_ext[inds_]
-            self.errors = errors_ext[inds_]
+            ## remove duplicates
+            #if rm_dupli :# remove duplicates
+            #    _, inds_  = np.unique(phase_ext, return_index=True) #return_inverse=True)
+            #else:
+            #    inds_ = range(len(phase_ext))
+            self.times        = phase_ext  #[inds_]
+            self.measurements = meas_ext   #[inds_]
+            self.errors       = errors_ext #[inds_]
             if self.passbands is not None :
-                self.passbands = pb_ext[inds_]
+                self.passbands = pb_ext    #[inds_]
             #    
             if self.trend_cesium is not None :
-                self.trend_cesium = np.concatenate((self.trend_cesium, self.trend_cesium))[inds]
+                self.trend_cesium = np.concatenate((self.trend_cesium, self.trend_cesium)) #[inds_]
             if self.trend_line is not None :
-                self.trend_line   = np.concatenate((self.trend_line, self.trend_line))[inds]
+                self.trend_line   = np.concatenate((self.trend_line, self.trend_line))     #[inds_]
             if self.trend_spline is not None :
-                self.trend_spline = np.concatenate((self.trend_spline, self.trend_spline))[inds]
+                self.trend_spline = np.concatenate((self.trend_spline, self.trend_spline)) #[inds_]
         
         inds               = np.argsort(self.times)
         self.times         = self.times[inds]

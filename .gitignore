@@ -5,6 +5,7 @@
 *.npz
 
 pkl_fileformat/*
+npz_fileformat/*
 
 
 
