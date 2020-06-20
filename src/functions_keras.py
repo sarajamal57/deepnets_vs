@@ -178,7 +178,7 @@ def parse_model_args(arg_dict=None):
     parser.add_argument("--output_store", type=str, default='')
     
     
-    ## NETS (TCN & RNN) params
+    ## NETS hyperparams
     parser.add_argument("--nb_passbands", type=int, default=1)
     
     parser.add_argument("--sizenet", type=int)
@@ -196,8 +196,6 @@ def parse_model_args(arg_dict=None):
     
     parser.add_argument("--bidirectional", dest='bidirectional', action='store_true')
     
-    
-    ## NET params
     parser.add_argument("--output_size_cw", type=int, default=None)
     parser.add_argument("--n_stacks", type=int, default=None)
     parser.add_argument("--max_dilation", type=int, default=None)
@@ -212,15 +210,13 @@ def parse_model_args(arg_dict=None):
     parser.add_argument("--use_skip_connections", dest='use_skip_connections', action='store_true')
                         
     parser.add_argument("--add_dense", dest= 'add_dense', action='store_true')
-    
+    parser.add_argument("--causal", dest='causal', action='store_true')
+    parser.add_argument("--aux_in", dest='aux_in', action='store_true')
     
     ## General params
     parser.add_argument("--use_raw", dest='use_raw', action='store_true')
     parser.add_argument("--add_metadata", dest='add_metadata', action='store_true')
     #
-    parser.add_argument("--causal", dest='causal', action='store_true')
-    parser.add_argument("--aux_in", dest='aux_in', action='store_true')
-    
     parser.add_argument("--categorical", dest='categorical', action='store_true')
     parser.add_argument("--loss_weights_list", help='delimited list input', type=str, default=None)
     parser.add_argument("--validation_split", type=float, default=0.0)
@@ -285,10 +281,8 @@ def get_run_id(data_id, model_type, sizenet, num_layers, learning_rate, batch_si
         @summary: generate unique ID from model parameters
     ---------------------------------------------------------- """
     run = '[{}]'.format(data_id)
-    
     if param_str is None:
-        run += "{}_n{:03d}_x{}_drop{}".format(model_type, sizenet, num_layers, 
-                                              int(100 * drop_frac)).replace('e-', 'm')
+        run += "{}_n{:03d}_x{}_drop{}".format(model_type, sizenet, num_layers, int(100 * drop_frac)).replace('e-', 'm')
         if embedding:
             run += '_emb{}'.format(embedding)
         if decode_type:
@@ -297,43 +291,32 @@ def get_run_id(data_id, model_type, sizenet, num_layers, learning_rate, batch_si
                 run += '_x{}'.format(decode_layers)
     else:
         run += param_str
-           
     if learning_rate:
         run += '_lr{:1.0e}'.format(learning_rate)
-        
     if batch_size:
         run += '_batch{}'.format(batch_size)
-    
     if nb_epoch:
         run += '_nepoch{}'.format(nb_epoch)
-
     if add_metadata is not None:
         run+='_metadata'           
     else:
         run+='_nometa'
-        
     if categorical:
         run+='_ctg'
-            
     if aux_in:
         run+='_aux'
-
     if padding:
         run+='_pad'
     else:
         run+='_gen'
-
     if diff_time:
         run+='_dtimes'
     else:
         run+= '_times'
-    
     if period_fold:
         run+='_folded'
-        
     if add_freqs:
         run+='_freqclf'
-        
     if loss_weights:
         for u in loss_weights.keys():
             if u =='clf_softmax_dense':
@@ -349,10 +332,8 @@ def get_run_id(data_id, model_type, sizenet, num_layers, learning_rate, batch_si
             else:
                 lw = "%.1e"%loss_weights[u]   #"%1.0e"
             run+=f'_{mkey}lossw{lw}'
-           
         if use_raw:
             run+='_rawdata'
-            
         if (model_type not in ['LSTM', 'GRU']) & (m_activation is not None) :
             run+=f'_{m_activation}'
     return run
@@ -376,15 +357,13 @@ def limited_memory_session(gpu_frac):
 
         
 ## ############################################################################ ##
-def generator_lc(list_lcs, label_lcs, 
-                 idx, #nb_epoch=100, 
+def generator_lc(list_lcs, label_lcs, idx,
                  data_id=None, 
-                 meta_liste=None, 
-                 sel_keys=None, 
+                 meta_liste=None,
+                 sel_keys=None,
                  dict_filters = {'red':0, 'blue':1}):
-    
+
     nclasses = label_lcs.shape[1]
-    
     while True: 
         sel_keys =list(list_lcs.keys())
         for i in idx: 
@@ -394,20 +373,18 @@ def generator_lc(list_lcs, label_lcs,
                 lc = list_lcs[mkey][i]         
                 length_lc = len(lc.times)
                 X = np.ndarray((1,length_lc, 3))
-                X[0,:,0] = lc.times  
-                X[0,:,1] = lc.measurements  
-                X[0,:,2] = 0 if data_id is None else dict_filters[data_id]
+                X[0,:,0] = lc.times           ## times
+                X[0,:,1] = lc.measurements    ## mag measurements
+                X[0,:,2] = 0 if data_id is None else dict_filters[data_id]  ## Passbands
                 #sample_weight = np.ndarray((1,length_lc))
                 #sample_weight[0,:] = 1/lc.errors            
                 X_input[f'main_input_pb{counter_pb}']=X 
                 counter_pb+=1
-                
             Y = np.ndarray((1, nclasses), dtype=np.int8)
             Y[0,:] = label_lcs[i,:] # categorical           
             if meta_liste is not None:
                 X_input['meta_input']=meta_liste[[i],:] 
-                
-            
+             
             yield X_input,Y #sample_weight
             
 
@@ -575,8 +552,7 @@ def run_network_gen(arg_dict, input_lcs, input_metadata, output_dict):
     X_list={}; 
     for mkey in pb_keys:
         X_list[mkey] = input_lcs[mkey]
-    
-    
+        
     ## ------------------- TRAIN/VALIDATION ------------------- ##
     from sklearn.model_selection import StratifiedKFold
     m_validation_split = arg_dict.validation_split
@@ -601,7 +577,6 @@ def run_network_gen(arg_dict, input_lcs, input_metadata, output_dict):
                 '\nlen(idx_validation) = ',  len(idx_validation),\
                 '\nlen(idx_test) = ',  len(idx_test))
     
-    
      ## ---------------------- ## CLASS FREQUENCY ## ---------------------- ##
     classnames  = np.r_[0, np.unique(Y_label_int)] 
     counter_all = np.sum(Y_label_cat, axis=0) #Counter(Y_label_int)
@@ -619,7 +594,6 @@ def run_network_gen(arg_dict, input_lcs, input_metadata, output_dict):
     freqs_     = np.asarray([dict_ratios[Y_label_int[i]] for i in range(len(Y_label_int))])
     freqs_cat  = [Y_label_cat[i,:]*freqs_[i] for i in range(len(freqs_))]
     freqs_cat  = np.asarray(freqs_cat)
-    
     
     ## ------------------- ARCHITECTURE ------------------- ##
     input_dimension = 3 #(times, mags, passbands)
@@ -665,7 +639,6 @@ def run_network_gen(arg_dict, input_lcs, input_metadata, output_dict):
     else:
         sample_weight_mode = {'clf_softmax_dense' : None}
         
-    
     ## ------------------- COMPILE & TRAIN ------------------- ##
     m_history=None; args_session=None
     m_run = get_run_id(**vars(arg_dict),param_str=param_str)
@@ -706,9 +679,7 @@ def run_network_gen(arg_dict, input_lcs, input_metadata, output_dict):
         
         m_arg_path = os.path.join(arg_dict.output_store, arg_dict.sim_type, m_run, 'args_session.h5')
         joblib.dump(args_session,m_arg_path)
-    
     K.clear_session()
-    
     return 1;
 
 
@@ -730,7 +701,6 @@ def run_network_pad(arg_dict, input_lcs, input_metadata, output_dict):
         pb_keys=['red', 'blue']
     else:
         pb_keys = [arg_dict.data_id]
-        
     arg_dict.nb_passbands = len(pb_keys) if arg_dict.data_id=='multiple' else 1
     
     sample_weights={}
@@ -753,8 +723,6 @@ def run_network_pad(arg_dict, input_lcs, input_metadata, output_dict):
         
         sample_weights[mkey][np.isnan(sample_weights[mkey])] = 0.
 
-    
-    
     ## ------------------- TRAIN/VALIDATION ------------------- ##
     from sklearn.model_selection import StratifiedKFold
     m_validation_split = arg_dict.validation_split
@@ -795,7 +763,6 @@ def run_network_pad(arg_dict, input_lcs, input_metadata, output_dict):
     meta_liste_train = meta_liste[idx_training,:]   if arg_dict.add_metadata is not None else None
     meta_liste_valid = meta_liste[idx_validation,:] if arg_dict.add_metadata is not None else None
     
-    
     ## ---------------------- ## CLASS FREQUENCY ## ---------------------- ##
     classnames  = np.r_[0, np.unique(Y_label_int)] 
     counter_all = np.sum(Y_label_cat, axis=0) 
@@ -815,7 +782,7 @@ def run_network_pad(arg_dict, input_lcs, input_metadata, output_dict):
     freqs_cat  = np.asarray(freqs_cat)
     
     ## ------------------- CONSOLE ------------------- ##
-    if True:         
+    if False: #True:
          for mkey in pb_keys:
             print(f'\n\n********** X_phot_full[{mkey}].shape \t=', X_phot[mkey].shape,
                      f'\n********** err_phot_full[{mkey}].shape \t=', err_phot[mkey].shape,
@@ -843,12 +810,10 @@ def run_network_pad(arg_dict, input_lcs, input_metadata, output_dict):
             print('********** meta_liste_train.shape \t=', meta_liste_train.shape, 
                    '\n********** meta_liste_valid.shape \t=', meta_liste_valid.shape,
                    '\n' )
-        
     ## ------------------- ARCHITECTURE ------------------- ##
     sel_keys        = pb_keys  ####
     max_lenght      = [X_phot[mkey].shape[1] for mkey in sel_keys]
     input_dimension = X_phot[pb_keys[0]].shape[-1]    # = 3,  times + mags + passbands
-    
     
     net_func = dict_nfuncs[arg_dict.run_id]
     m_model=None; param_str=None; param_dict=None
@@ -872,7 +837,6 @@ def run_network_pad(arg_dict, input_lcs, input_metadata, output_dict):
     if (arg_dict.run_id in list_ae): # encoder-decoder
         m_model, param_str, param_dict = net_func(input_dimension, 
                                                   max_lenght=max_lenght,
-                                                  #gp_down_size=m_datapoints,
                                                   add_meta=meta_liste.shape[1] if arg_dict.add_metadata else None,
                                                   **vars(arg_dict))
     #    
@@ -880,11 +844,10 @@ def run_network_pad(arg_dict, input_lcs, input_metadata, output_dict):
         m_model, param_str, param_dict = net_func(input_dimension, 
                                                   max_lenght=max_lenght,
                                                   output_size=nclasses if arg_dict.categorical else 1,
-                                                  #gp_down_size=m_datapoints,
                                                   add_meta=meta_liste.shape[1] if arg_dict.add_metadata else None,
                                                   **vars(arg_dict))
     #
-    elif (arg_dict.run_id in list_clf_meta): # clf
+    elif (arg_dict.run_id in list_clf_meta): # meta clf
         m_model, param_str, param_dict = net_func(output_size=nclasses if arg_dict.categorical else 1,
                                                   add_meta=meta_liste.shape[1] if arg_dict.add_metadata else None,
                                                   **vars(arg_dict))   
@@ -895,7 +858,7 @@ def run_network_pad(arg_dict, input_lcs, input_metadata, output_dict):
                                                   output_size=nclasses if arg_dict.categorical else 1,
                                                   return_sequences=False,
                                                   add_meta=meta_liste.shape[1] if arg_dict.add_metadata else None,
-                                                  **vars(arg_dict))                                              
+                                                  **vars(arg_dict))
     
     ## ------------------- INPUT NET ------------------- ##
     input_data_train = {}
@@ -926,7 +889,6 @@ def run_network_pad(arg_dict, input_lcs, input_metadata, output_dict):
                       input_data_train[f'aux_input_concat_pb{counter_pb}'].shape,
                       input_data_valid[f'aux_input_concat_pb{counter_pb}'].shape)
                 
-                
     ## ------------------- OUTPUT NET ------------------- ##
     output_data_train = {}
     output_data_valid = {}
@@ -937,18 +899,14 @@ def run_network_pad(arg_dict, input_lcs, input_metadata, output_dict):
             counter_pb+=1
             output_data_train[f'decode_pb{counter_pb}_time_dist'] = X_ae_train[mkey]
             output_data_valid[f'decode_pb{counter_pb}_time_dist'] = X_ae_valid[mkey]
-            
-    #
     elif (arg_dict.run_id in list_composite):
         counter_pb=-1
         for mkey in sel_keys:
             counter_pb+=1
             output_data_train[f'decode_pb{counter_pb}_time_dist'] = X_ae_train[mkey]
             output_data_valid[f'decode_pb{counter_pb}_time_dist'] = X_ae_valid[mkey]
-        
         output_data_train['clf_softmax_dense'] = Y_label_cat_train if arg_dict.categorical else  Y_label_int_train
         output_data_valid['clf_softmax_dense'] = Y_label_cat_valid if arg_dict.categorical else  Y_label_int_valid
-    #
     else:
         output_data_train['clf_softmax_dense'] = Y_label_cat_train if arg_dict.categorical else Y_label_int_train
         output_data_valid['clf_softmax_dense'] = Y_label_cat_valid if arg_dict.categorical else Y_label_int_valid
@@ -965,16 +923,13 @@ def run_network_pad(arg_dict, input_lcs, input_metadata, output_dict):
             sample_weights_train[f'decode_pb{counter_pb}_time_dist'] = sample_weights[mkey][idx_training,:]
             sample_weights_valid[f'decode_pb{counter_pb}_time_dist'] = sample_weights[mkey][idx_validation,:]
         
-    
     ## ------------------- CLASS WEIGHTS ------------------- ##
     class_weights_train = None
     if (arg_dict.run_id not in list_ae) & (arg_dict.add_freqs is not None): # CLF || DUAL
         class_weights_train = {'clf_softmax_dense': freqs_cat[idx_training,:] if arg_dict.categorical else dict_ratios_init}  
         
-        
     ## ------------------- VALIDATION DATA ------------------- ##
     validation_data = (input_data_valid, output_data_valid, sample_weights_valid)
-    
     
     ## ------------------- SAMPLE_WEIGHT_MODE ------------------- ##
     if arg_dict.run_id in list_ae:
@@ -983,7 +938,6 @@ def run_network_pad(arg_dict, input_lcs, input_metadata, output_dict):
         for mkey in sel_keys:
             counter_pb+=1
             sample_weight_mode[f'decode_pb{counter_pb}_time_dist']='temporal'
-    #
     elif arg_dict.run_id in list_composite:
         sample_weight_mode ={}
         counter_pb=-1
@@ -994,9 +948,8 @@ def run_network_pad(arg_dict, input_lcs, input_metadata, output_dict):
     else:
         sample_weight_mode = {'clf_softmax_dense' : None}
     
-    
     ## ------------------- CONSOLE ------------------- ##
-    if True:
+    if False: #True :
         print()
         print('********** input_data_train.keys \t=',  input_data_train.keys())
         print('********** output_data_train.keys \t=', output_data_train.keys())
@@ -1026,8 +979,7 @@ def run_network_pad(arg_dict, input_lcs, input_metadata, output_dict):
             print('********** class_weights_train \t\t=  None')
             
         print('********** sample_weight_mode \t\t= ', sample_weight_mode, '\n')
-   
-    
+        
     print(m_model.summary())
    
     ## ------------------- COMPILE & TRAIN ------------------- ##
@@ -1075,8 +1027,5 @@ def run_network_pad(arg_dict, input_lcs, input_metadata, output_dict):
         
         m_arg_path = os.path.join(arg_dict.output_store, arg_dict.sim_type, m_run, 'args_session.h5')
         joblib.dump(args_session,m_arg_path)
-        
-    
     K.clear_session()
-    
     return 1;
