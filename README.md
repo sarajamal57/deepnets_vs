@@ -1,4 +1,4 @@
-## Code of the paper "On Neural Architectures for Astronomical Time-series Classification with Application to Variable Stars"
+## Code associated to the paper "On Neural Architectures for Astronomical Time-series Classification with Application to Variable Stars"
 By Jamal & Bloom (2020)
 
 
