@@ -19,14 +19,14 @@ For batch computation on terminal, shell scripts are provided in progs/.
 cd deepnets_vs/
 ```
 
-$\bullet$ _direct classifiers_ trained on the B-band data (phase-folded) through generator functions:
+-  _direct classifiers_ trained on the B-band data (phase-folded) through generator functions:
 ```
 ./progs/list_foldedLCs/run_MACHO_ClassifierNet_tCNN.sh           blue tCNN 32 3
 ./progs/list_foldedLCs/run_MACHO_ClassifierNet_RNN.sh            blue LSTM 32 1
 ./progs/list_foldedLCs/run_MACHO_ClassifierNet_RNN.sh            blue GRU  16 2
 ```
 
-$\bullet$ networks trained on reduced B-band data (normalized, phase-folded, fixed-length):
+- networks trained on reduced B-band data (normalized, phase-folded, fixed-length):
 ```
 ./progs/matrix_norm_foldedLCs/run_MACHO_ClassifierNet_tCNN.sh    blue tCNN 32 3
 ./progs/matrix_norm_foldedLCs/run_MACHO_ClassifierNet_RNN.sh     blue LSTM 32 1
@@ -37,7 +37,7 @@ $\bullet$ networks trained on reduced B-band data (normalized, phase-folded, fix
 ./progs/matrix_norm_foldedLCs/run_MACHO_CompositeNet_RNN.sh      blue GRU  16 2
 ```
 
-$\bullet$ networks trained on reduced B-band data (raw, phase-folded, fixed-length):
+- networks trained on reduced B-band data (raw, phase-folded, fixed-length):
 ```
 ./progs/matrix_raw_foldedLCs/run_MACHO_ClassifierNet_tCNN.sh    blue tCNN 32 3
 ./progs/matrix_raw_foldedLCs/run_MACHO_ClassifierNet_RNN.sh     blue LSTM 32 1
