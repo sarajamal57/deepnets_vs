@@ -52,7 +52,7 @@ Arguments in command line refer to:
 - the type of data (B-band:'blue', merged R- and B-band: 'rb', a hybrid variant with R- and B-band: 'multiple')
 - the model type (LSTM, GRU, tCNN and dTCN)
 - the network size (integer) 
-- the number of layers/stacks (interger)
+- the number of layers/stacks (integer)
 
 Shell files can be adapted to train networks on a broad range of hyperparameters.
 
