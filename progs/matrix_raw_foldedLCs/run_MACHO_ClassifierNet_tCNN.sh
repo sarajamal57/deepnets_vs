@@ -35,28 +35,18 @@ loss_AE='mae'
 loss_CLF='categorical_crossentropy' # if categorical else 'logcosh'
 metrics_CLF='categorical_accuracy'  # if categorical else 'accuracy'
 
-data_store='../example_data/MACHO/'
-output_store='../outputs/trained_models/'
+data_store='/example_data/MACHO/'
+output_store='/outputs/trained_models/'
 
 ##   --use_raw          ## TRUE: normalized data,   FALSE: initial obs.
 ##   --padding          ## TRUE: fixed-length data, FALSE: initial lengths
 ##   --period_fold      ## TRUE: phase-folded LCs,  FALSE: time-series
 ##   --add_metadata     ## TRUE: metadata as ancillary input,  FALSE: none
 
-## -------- RNN  -------- ##
-# --bidirectional
-
 ## -------- tCNN  -------- ##
 m_activation='tanh'
 kernel_size=5
 max_dilation=2
 
-## -------- dTCN  -------- ##
-n_stacks=num_layers
-kernel_size=3
-kernel_wavenet=1
-max_dilation=2
-m_activation='wavenet'
 
-
-python3.6 ../scripts/script_MACHO.py --run_id=$run_id --sim_type=$sim_type --data_id=$data_id --model_type=$model_type  --sizenet=$sizenet --num_layers=$num_layers --drop_frac=$drop_frac --batch_size=$batch_size --learning_rate=$learning_rate --nb_epoch=$nb_epoch --validation_split=$validation_split --gpu_frac=$gpu_frac --loss_AE=$loss_AE --loss_CLF=$loss_CLF --metrics_CLF=$metrics_CLF --data_store=$data_store --output_store=$output_store --add_dense --categorical --causal --padding --period_fold --add_metadata --m_activation=$m_activation --kernel_size=$kernel_size --max_dilation=$max_dilation --use_raw
+python3.6 ./scripts/script_MACHO.py --run_id=$run_id --sim_type=$sim_type --data_id=$data_id --model_type=$model_type  --sizenet=$sizenet --num_layers=$num_layers --drop_frac=$drop_frac --batch_size=$batch_size --learning_rate=$learning_rate --nb_epoch=$nb_epoch --validation_split=$validation_split --gpu_frac=$gpu_frac --loss_AE=$loss_AE --loss_CLF=$loss_CLF --metrics_CLF=$metrics_CLF --data_store=$data_store --output_store=$output_store --add_dense --categorical --causal --padding --period_fold --add_metadata --m_activation=$m_activation --kernel_size=$kernel_size --max_dilation=$max_dilation --use_raw

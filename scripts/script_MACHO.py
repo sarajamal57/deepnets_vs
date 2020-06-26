@@ -10,9 +10,11 @@ import time, datetime
 import copy, joblib, shutil
 from collections import Counter
 
-module_path = os.path.dirname(os.getcwd())+'/../src/'
+#module_path = os.path.dirname(os.getcwd())+'/../src/'
+module_path = os.getcwd()+'/src/'
 if module_path not in sys.path:
     sys.path.append(module_path)
+
 
 #### MOVED to ****functions_keras.py****
 ##import tensorflow as tf
@@ -101,12 +103,10 @@ def get_data(arg_dict, fileformat='pkl'):
         if data_id=='multiple':
             m_path_b = f'{m_folder}/{filename}_blue{m_ext}'
             m_path_r = f'{m_folder}/{filename}_red{m_ext}'
-            print(m_path_b, '\n', m_path_r)
             input_lcs['blue'] = joblib.load(m_path_b) if fileformat=='pkl' else np.load(m_path_b)
             input_lcs['red']  = joblib.load(m_path_r) if fileformat=='pkl' else np.load(m_path_r)
         else:
             m_path = f'{m_folder}/{filename}_{data_id}{m_ext}'
-            print(m_path)
             input_lcs[data_id] = joblib.load(m_path) if fileformat=='pkl' else np.load(m_path)
         
     return input_lcs, input_metadata, output_dict
@@ -126,8 +126,8 @@ def set_params_cline(args):
     args.sim_type = args.sim_type+('_fixedlength' if args.padding else '_generator')
     args.sim_type += f'_{m_date}'
     
-    args.data_store = os.path.dirname(os.getcwd())+ args.data_store 
-    args.output_store = os.path.dirname(os.getcwd())+ args.output_store
+    args.data_store = os.getcwd()+ args.data_store
+    args.output_store = os.getcwd()+ args.output_store
     
     nb_passbands=2 if args.data_id=='multiple' else 1
            
@@ -192,17 +192,17 @@ def main(args=None):
     
     stime = time.time() 
     
-    if False: 
+    if True:
         ############## 1 - Set args session ############## 
         arg_dict = set_params_cline(args)  
         
         ############## 2 - Load stored data_structures  ############## 
-        input_lcs=None; input_metadata=None
-        input_lcs, input_metadata = get_data_multi(arg_dict)
+        input_lcs=None; input_metadata=None; output_dict=None
+        input_lcs, input_metadata, output_dict = get_data(arg_dict)
         
         ############## 3 - Train network(s) ##############
         if input_lcs is not None:
-            run_autoencoder(arg_dict, input_lcs, input_metadata)
+             run_network(arg_dict, input_lcs, input_metadata, output_dict)
           
         
     hours, rem = divmod(time.time() - stime, 3600) #timeit.default_timer()-stime
