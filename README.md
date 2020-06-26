@@ -1,4 +1,5 @@
-# Code of the paper ``On Neural Architectures for Astronomical Time-series Classification with Application to Variable Stars"
+## Code of the paper "On Neural Architectures for Astronomical Time-series Classification with Application to Variable Stars"
+By Jamal & Bloom (2020)
 
 
 This code is associated to the publication Jamal & Bloom (2020) for neural network architectures for variables stars classification.
@@ -48,10 +49,10 @@ $\bullet$ networks trained on reduced B-band data (raw, phase-folded, fixed-leng
 ```
 
 Arguments in command line refer to:
--      the type of data (B-band:'blue', merged R- and B-band: 'rb', a hybrid variant with R- and B-band: 'multiple')
--      the model type (LSTM, GRU, tCNN and dTCN)
--      the network size (integer) 
--      the number of layers/stacks (interger)
+- the type of data (B-band:'blue', merged R- and B-band: 'rb', a hybrid variant with R- and B-band: 'multiple')
+- the model type (LSTM, GRU, tCNN and dTCN)
+- the network size (integer) 
+- the number of layers/stacks (interger)
 
 Shell files can be adapted to train networks on a broad range of hyperparameters.
 
@@ -72,7 +73,7 @@ __REFERENCES__
 Exhaustive list of references and acknowledgments are cited in Jamal & Bloom (2020).
 
 
-__ACKNOWLEDGMENTS__
+__ACKNOWLEDGMENTS on the use of the Public MACHO VS data__
 
 _This work utilizes public domain data obtained by the MACHO Project, jointly funded by the US Department of Energy through the University of California, Lawrence Livermore National Laboratory under contract No. W-7405-Eng-48, by the National Science Foundation through the Center for Particle Astrophysics of the University of California under cooperative agreement AST-8809616, and by the Mount Stromlo and Siding Spring Observatory, part of the Australian National University._
 
