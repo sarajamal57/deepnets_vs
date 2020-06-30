@@ -10,7 +10,7 @@ In our design, _autoencoders_ and _composite networks_ require fixed-size inputs
 The network labeled as _direct classifiers_ can process fixed-size data in a batch mode as well as a list of observables with different lengths using generator functions. The generator functions are also provided in this code.
 
 Notebooks for users are made available to download the data from the public MACHO VS database, run examples of preprocessing functions and train networks.
-The latter requires preprocessed data of the 17603 MACHO VS, made available in a zenodo repository (). 
+The latter requires preprocessed data of the 17603 MACHO VS, made available in a Zenodo repository (doi:10.5281/zenodo.3908783). 
 
 
 For batch computation on terminal, shell scripts are provided in progs/.
