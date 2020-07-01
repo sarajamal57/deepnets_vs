@@ -131,7 +131,7 @@ def lags_to_times(dT,t_0 = None):
 ## ############################################################################ ##
 def period_fold(lc, period, pix_rejection = True,
                 epoch_select = 'max_brightness', epoch_t0 = None,
-                extend_2cycles = True): #, rm_dupli = True):
+                extend_2cycles = True):
     ''' Phase folding for light-curves.
         @param period: float, period.
         @param pix_rejection: boolean, rejection outside 0.05 and 0.95 quantiles.
@@ -169,48 +169,17 @@ def period_fold(lc, period, pix_rejection = True,
         if lc.passbands is not None:
             pb_ext = np.concatenate((lc.passbands, lc.passbands))
         
-        '''
-        if rm_dupli :# remove duplicates
-            phase_ext, inds_ = np.unique(phase_ext, return_index = True) #return_inverse = True)
-            lc.times = phase_ext
-            lc.measurements = meas_ext[inds_]
-            lc.errors = errors_ext[inds_]
-            if lc.passbands is not None:
-                lc.passbands = pb_ext[inds_]
-            if lc.trend_cesium is not None :
-                lc.trend_cesium = np.concatenate((lc.trend_cesium, lc.trend_cesium))[inds_]
-            if lc.trend_line is not None :
-                lc.trend_line = np.concatenate((lc.trend_line, lc.trend_line))[inds_]
-            if lc.trend_spline is not None :
-                lc.trend_spline = np.concatenate((lc.trend_spline, lc.trend_spline))[inds_]
-        else:
-            lc.times = phase_ext
-            lc.measurements = meas_ext
-            lc.errors = errors_ext
-            if lc.passbands is not None:
-                lc.passbands = pb_ext
-            if lc.trend_cesium is not None :
-                lc.trend_cesium = np.concatenate((lc.trend_cesium, lc.trend_cesium))
-            if lc.trend_line is not None :
-                lc.trend_line = np.concatenate((lc.trend_line, lc.trend_line))
-            if lc.trend_spline is not None :
-                lc.trend_spline = np.concatenate((lc.trend_spline, lc.trend_spline))
-        '''
-        #if rm_dupli :# remove duplicates
-        #    _, inds_ = np.unique(phase_ext, return_index = True) 
-        #else:
-        #    inds_ = range(len(phase_ext))
-        lc.times        = phase_ext  #[inds_]
-        lc.measurements = meas_ext   #[inds_]
-        lc.errors       = errors_ext #[inds_]
+        lc.times        = phase_ext
+        lc.measurements = meas_ext
+        lc.errors       = errors_ext
         if lc.passbands is not None:
-            lc.passbands = pb_ext #[inds_]
+            lc.passbands = pb_ext
         if lc.trend_cesium is not None :
-            lc.trend_cesium = np.concatenate((lc.trend_cesium, lc.trend_cesium))#[inds_]
+            lc.trend_cesium = np.concatenate((lc.trend_cesium, lc.trend_cesium))
         if lc.trend_line is not None :
-            lc.trend_line = np.concatenate((lc.trend_line, lc.trend_line))#[inds_]
+            lc.trend_line = np.concatenate((lc.trend_line, lc.trend_line)
         if lc.trend_spline is not None :
-            lc.trend_spline = np.concatenate((lc.trend_spline, lc.trend_spline))#[inds_]
+            lc.trend_spline = np.concatenate((lc.trend_spline, lc.trend_spline))
     
     inds = np.argsort(lc.times)
     lc.times = lc.times[inds]
@@ -275,7 +244,6 @@ def pred_GP_lc (xtimes, ymags, yerrs, mperiod,
     #    else :
     #        x_up  = x[np.sort(np.random.randint(low=0, high=len(x), size=nbpoints_up))]
     #        #x_up = np.random.randint(low=x[0], high=x[-1], size=nbpoints_up)
-
 
     with pm.Model() as model:
 
@@ -408,7 +376,7 @@ def pred_GP_lc (xtimes, ymags, yerrs, mperiod,
             term2 = xo.gp.terms.SHOTerm(S0=S2, w0=w2, Q=Q2)
             term3 = xo.gp.terms.SHOTerm(S0=S3, w0=w3, Q=Q3)
             
-            kernel=xo.gp.terms.TermSum(term1, term2)#, term3)#
+            kernel=xo.gp.terms.TermSum(term1, term2)  #, term3)
             
             gp = xo.gp.GP(kernel, x, yerr**2+np.exp(logs2))
 
@@ -588,6 +556,7 @@ def get_random_timerange(x,dx, nbpoints_up=200, period_crit=None, factor=10, fix
 
             if len(x_subset)>nbcrit:  #crit >2datapoints..
                 xmin     = x_subset[0]; xmax = x_subset[-1]
+                
                 ## TOTAL RANDOM SAMPLE WITHIN TARGET TIME_RANGE
                 nbsample = (nbpoints_up_set[i] if nbpoints_up_set[i]>1 else (nbpoints_up_set[i]+1)) #nm = nbpoints_up_set[i]
                 xvec1    = np.sort(random.sample(get_FRandom_vector(xmin, xmax, nbsample),

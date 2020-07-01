@@ -327,10 +327,7 @@ def get_run_id(data_id, model_type, sizenet, num_layers, learning_rate, batch_si
                 mkey = 'AE1'
             else:
                 mkey = ''
-            if loss_weights[u]==1:
-                lw = 1
-            else:
-                lw = "%.1e"%loss_weights[u]   #"%1.0e"
+            lw = 1 if loss_weights[u]==1 else "%.1e"%loss_weights[u]
             run+=f'_{mkey}lossw{lw}'
         if use_raw:
             run+='_rawdata'
@@ -522,8 +519,8 @@ def train_and_log(X, X_list, Y, run, model, nb_epoch,
         
         model_path = os.path.join(log_dir, 'model.h5')
         model.save(model_path)
-        #joblib.dump(history, history_path)     # moved to run_network_**      
-    #K.clear_session()    # moved to run_network_**                           
+        #joblib.dump(history, history_path)     # moved to function run_network_**      
+    #K.clear_session()                          # moved to function run_network_**
     
     return history, args_session
 

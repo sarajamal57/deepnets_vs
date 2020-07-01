@@ -120,9 +120,11 @@ def plot_confusion_matrix(cm, cm_cnt, m_classnames, idrun, m_title):
     ---------------------------------------------------------- """
     m_tot = np.sum(cm_cnt, axis=1)
     n=7; m_width=14; m_height=5; m_size=14
+    
     fig, ax = plt.subplots(num=None, figsize=(m_width, m_height))
     plt.subplots_adjust(wspace=0.5)
     G=gridspec.GridSpec(1,2*n+2)
+    
     ## Confusion matrix expressed in counts
     ax1 = plt.subplot(G[0,:n-1])
     s=sns.heatmap(cm_cnt, xticklabels=m_classnames, yticklabels=m_classnames, 
@@ -151,6 +153,7 @@ def plot_confusion_matrix(cm, cm_cnt, m_classnames, idrun, m_title):
                  bbox=dict(boxstyle="round", ec=(1.0,1.0,1.0), fc=(1.0,1.0,1.0),),
                  transform=plt.gca().transAxes,fontweight="normal",style="italic",
                  color="gray", fontsize=m_size-2, backgroundcolor=None)
+    
     ## Confusion matrix expressed in % (/true_labels initial count)
     ax2 = plt.subplot(G[0,n+2:2*n-1])
     ax3 = plt.subplot(G[0,2*n])
